@@ -7,6 +7,7 @@
 	import { page } from '$app/stores';
 	import { generateBreadcrumbs, shouldShowBreadcrumbs } from '$lib/utils/breadcrumb.js';
 	import { Menu } from '@lucide/svelte';
+	import { LightSwitch } from '$lib/components/ui/light-switch';
 
 	let mobileMenuOpen = $state(false);
 
@@ -160,8 +161,10 @@
 					<div class="flex items-center space-x-2">
 						<Button variant="outline" onclick={handleLogin}>Login</Button>
 						<Button onclick={handleSignUp}>Sign Up</Button>
+						
 					</div>
 				{/if}
+				<LightSwitch />
 			</nav>
 		</div>
 	</div>

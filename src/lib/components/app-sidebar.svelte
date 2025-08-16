@@ -2,25 +2,21 @@
 	import {
 		AudioWaveformIcon,
 		BookOpenIcon,
-		BotIcon,
 		ChartPieIcon,
 		CommandIcon,
 		FrameIcon,
-		SquareTerminalIcon,
 		GalleryVerticalEndIcon,
 		MapIcon,
-		Settings2Icon,
-		ShieldIcon,
 		UsersIcon,
-		FileTextIcon,
 		LayoutDashboard,
-		DatabaseIcon,
-		SlidersHorizontalIcon,
-		ActivityIcon,
 		BellIcon,
 		LockIcon,
 		LifeBuoyIcon,
-		KeyRoundIcon
+		KeyRoundIcon,
+		FileTextIcon,
+		PenToolIcon,
+		ImageIcon,
+		FolderIcon
 	} from '@lucide/svelte';
 	import { authClient } from '$lib/auth/auth-client';
 	const session = authClient.useSession();
@@ -78,6 +74,17 @@
 				]
 			},
 			{
+				title: 'Content Management',
+				url: '/admin/content',
+				icon: FileTextIcon,
+				items: [
+					{ title: 'Blog Posts', url: '/admin/content/blog' },
+					{ title: 'Portfolio', url: '/admin/content/portfolio' },
+					{ title: 'Media Library', url: '/admin/content/media' },
+					{ title: 'Categories', url: '/admin/content/categories' }
+				]
+			},
+			{
 				title: 'Documentation',
 				url: '#',
 				icon: BookOpenIcon,
@@ -128,26 +135,10 @@
 				icon: LifeBuoyIcon,
 				items: [
 					{ title: 'Support Tickets', url: '/admin/support/tickets' },
+					{ title: 'Contact Submissions', url: '/admin/support/contact' },
 					{ title: 'Knowledge Base', url: '/admin/support/knowledge-base' },
 					{ title: 'Feedback', url: '/admin/support/feedback' }
 				]
-			}
-		],
-		projects: [
-			{
-				name: 'Design Engineering',
-				url: '#',
-				icon: FrameIcon
-			},
-			{
-				name: 'Sales & Marketing',
-				url: '#',
-				icon: ChartPieIcon
-			},
-			{
-				name: 'Travel',
-				url: '#',
-				icon: MapIcon
 			}
 		]
 	};
@@ -155,11 +146,11 @@
 
 <script lang="ts">
 	import NavMain from './nav-main.svelte';
-	import NavProjects from './nav-projects.svelte';
 	import NavUser from './nav-user.svelte';
 	import TeamSwitcher from './team-switcher.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import type { ComponentProps } from 'svelte';
+	import { LightSwitch } from '$lib/components/ui/light-switch';
 	let {
 		ref = $bindable(null),
 		collapsible = 'icon',
@@ -185,9 +176,9 @@
 	</Sidebar.Header>
 	<Sidebar.Content>
 		<NavMain items={data.navMain} />
-		<NavProjects projects={data.projects} />
 	</Sidebar.Content>
 	<Sidebar.Footer>
+		<LightSwitch />
 		<NavUser {user} />
 	</Sidebar.Footer>
 	<Sidebar.Rail />
