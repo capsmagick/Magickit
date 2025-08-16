@@ -7,12 +7,12 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 
-	let name = '';
-	let email = '';
-	let password = '';
-	let confirmPassword = '';
-	let isLoading = false;
-	let error = '';
+	let name = $state('');
+	let email = $state('');
+	let password = $state('');
+	let confirmPassword = $state('');
+	let isLoading = $state(false);
+	let error = $state('');
 
 	const session = authClient.useSession();
 

@@ -1,0 +1,11 @@
+{
+  "name": "Magickit Database Helper",
+  "description": "Assists with MongoDB operations and ensures proper database patterns",
+  "trigger": {
+    "type": "file_save",
+    "patterns": ["src/lib/db/**/*.ts", "src/routes/**/+page.server.ts", "src/routes/api/**/*.ts"]
+  },
+  "prompt": "Review the saved database-related file and ensure it follows Magickit database patterns:\n\n1. **MongoDB Integration**: Uses existing dbClient pattern, not new connections\n2. **ObjectId Usage**: Uses MongoDB ObjectId for document IDs, not strings\n3. **Collection Patterns**: Follows established collection utility patterns\n4. **Error Handling**: Implements proper error handling with user-friendly messages\n5. **Validation**: Uses proper TypeScript interfaces and validation schemas\n6. **Performance**: Uses appropriate indexes, projections, and query optimization\n7. **Security**: Validates inputs and prevents injection attacks\n\nIf any issues are found, provide specific code suggestions. If the code looks good, confirm it follows the database patterns.",
+  "autoApprove": false,
+  "enabled": true
+}

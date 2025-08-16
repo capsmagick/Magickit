@@ -1,0 +1,11 @@
+{
+  "name": "Magickit Test Generator",
+  "description": "Generates appropriate tests for components and functions",
+  "trigger": {
+    "type": "manual",
+    "buttonText": "Generate Tests"
+  },
+  "prompt": "Generate comprehensive tests for the current file:\n\n1. **Component Tests**: Create unit tests for Svelte components using Vitest and Testing Library\n2. **Function Tests**: Test utility functions, database operations, and API endpoints\n3. **Integration Tests**: Suggest end-to-end tests for user workflows\n4. **Accessibility Tests**: Include tests for ARIA attributes and keyboard navigation\n5. **Error Handling**: Test error states and edge cases\n6. **Form Validation**: Test form validation and submission flows\n7. **Authentication**: Test auth flows and permission checks\n8. **Database Operations**: Test CRUD operations and data validation\n\nGenerate actual test code using Vitest syntax. Include setup, test cases, and cleanup. Focus on testing the most critical functionality and edge cases.",
+  "autoApprove": false,
+  "enabled": true
+}

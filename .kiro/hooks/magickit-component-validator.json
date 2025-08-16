@@ -1,0 +1,11 @@
+{
+  "name": "Magickit Component Validator",
+  "description": "Validates Svelte components follow Magickit design principles and Svelte 5 patterns",
+  "trigger": {
+    "type": "file_save",
+    "patterns": ["src/lib/components/**/*.svelte", "src/routes/**/*.svelte"]
+  },
+  "prompt": "Review the saved Svelte component and ensure it follows these Magickit standards:\n\n1. **Svelte 5 Syntax**: Uses $state(), $derived(), $effect(), and $props() instead of legacy syntax\n2. **UI/UX Principles**: Follows spacing hierarchy (gap-6, gap-4, gap-2), typography scale (text-2xl, text-lg, text-sm), and semantic color tokens\n3. **Component Patterns**: Uses shadcn-svelte components properly with correct padding (p-6 for pages, p-4 for cards, p-0 for tables)\n4. **Accessibility**: Includes proper ARIA labels, semantic HTML, and keyboard navigation support\n5. **Loading/Error States**: Implements proper loading indicators and error handling\n6. **TypeScript**: Uses proper interfaces and typing\n\nIf any issues are found, provide specific suggestions for improvement. If the component looks good, confirm it follows the standards.",
+  "autoApprove": false,
+  "enabled": true
+}

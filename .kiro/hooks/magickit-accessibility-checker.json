@@ -1,0 +1,11 @@
+{
+  "name": "Magickit Accessibility Checker",
+  "description": "Ensures components meet WCAG 2.1 accessibility standards",
+  "trigger": {
+    "type": "manual",
+    "buttonText": "Check Accessibility"
+  },
+  "prompt": "Review the current file or selected code for accessibility compliance:\n\n1. **Semantic HTML**: Uses proper HTML elements (button, nav, main, section, etc.)\n2. **ARIA Labels**: Includes aria-label, aria-describedby, and other ARIA attributes where needed\n3. **Keyboard Navigation**: Supports tab navigation and keyboard interactions\n4. **Color Contrast**: Uses semantic color tokens that meet WCAG AA standards\n5. **Focus Indicators**: Provides visible focus states with ring classes\n6. **Screen Reader Support**: Includes proper labels and descriptions\n7. **Form Accessibility**: Labels are properly associated with form controls\n8. **Image Alt Text**: Images have descriptive alt attributes\n\nProvide specific suggestions for improving accessibility. If the code is already accessible, confirm it meets WCAG 2.1 standards.",
+  "autoApprove": false,
+  "enabled": true
+}

@@ -47,34 +47,34 @@
 		navMain: [
 			{
 				title: 'Dashboard',
-				url: '/dashboard',
+				url: '/admin',
 				icon: LayoutDashboard,
 				isActive: true,
 				items: [
-					{ title: 'Overview', url: '/dashboard' },
-					{ title: 'Reports', url: '/dashboard/reports' },
-					{ title: 'Recent Activity', url: '/dashboard/activity' }
+					{ title: 'Overview', url: '/admin' },
+					{ title: 'Analytics', url: '/admin' },
+					{ title: 'Recent Activity', url: '/admin' }
 				]
 			},
 			{
 				title: 'User Management',
-				url: '/users',
+				url: '/admin/users',
 				icon: UsersIcon,
 				items: [
-					{ title: 'All Users', url: '/users' },
-					{ title: 'User Profiles', url: '/users/profiles' },
-					{ title: 'Login Sessions', url: '/users/sessions' }
+					{ title: 'All Users', url: '/admin/users' },
+					{ title: 'User Profiles', url: '/admin/users/profiles' },
+					{ title: 'Login Sessions', url: '/admin/users/sessions' }
 				]
 			},
 			{
 				title: 'Access Control (RBAC)',
-				url: '/access-control',
+				url: '/admin/access-control',
 				icon: KeyRoundIcon,
 				items: [
-					{ title: 'Roles', url: '/access-control/roles' },
-					{ title: 'Permissions', url: '/access-control/permissions' },
-					{ title: 'Assign Roles', url: '/access-control/assign' },
-					{ title: 'Audit Access', url: '/access-control/audit' }
+					{ title: 'Roles', url: '/admin/access-control/roles' },
+					{ title: 'Permissions', url: '/admin/access-control/permissions' },
+					{ title: 'Assign Roles', url: '/admin/access-control/assign' },
+					{ title: 'Audit Access', url: '/admin/access-control/audit' }
 				]
 			},
 			{
@@ -100,34 +100,36 @@
 					}
 				]
 			},
-			
+
 			{
 				title: 'Notifications',
-				url: '/notifications',
+				url: '/admin/notifications',
 				icon: BellIcon,
 				items: [
-					{ title: 'User Notifications', url: '/notifications/users' },
-					{ title: 'System Alerts', url: '/notifications/system' }
+					{ title: 'User Notifications', url: '/admin/notifications' },
+					{ title: 'System Alerts', url: '/admin/notifications' },
+					{ title: 'Email Templates', url: '/admin/notifications' }
 				]
 			},
 			{
 				title: 'Security',
-				url: '/security',
+				url: '/admin/security',
 				icon: LockIcon,
 				items: [
-					{ title: 'IP Access Control', url: '/security/ip-access' },
-					{ title: 'Brute Force Protection', url: '/security/brute-force' },
-					{ title: 'Audit Trails', url: '/security/audit-trails' }
+					{ title: 'Overview', url: '/admin/security' },
+					{ title: 'IP Access Control', url: '/admin/security/ip-access' },
+					{ title: 'Brute Force Protection', url: '/admin/security/brute-force' },
+					{ title: 'Audit Trails', url: '/admin/security/audit-trails' }
 				]
 			},
 			{
 				title: 'Support',
-				url: '/support',
+				url: '/admin/support',
 				icon: LifeBuoyIcon,
 				items: [
-					{ title: 'Support Tickets', url: '/support/tickets' },
-					{ title: 'Knowledge Base', url: '/support/kb' },
-					{ title: 'Feedback', url: '/support/feedback' }
+					{ title: 'Support Tickets', url: '/admin/support' },
+					{ title: 'Knowledge Base', url: '/admin/support' },
+					{ title: 'Feedback', url: '/admin/support' }
 				]
 			}
 		],

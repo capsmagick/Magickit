@@ -6,11 +6,11 @@
 	import { authClient } from '$lib/auth/auth-client';
 	import { goto } from '$app/navigation';
 
-	let name = '';
-	let email = '';
-	let isLoading = false;
-	let error = '';
-	let success = '';
+	let name = $state('');
+	let email = $state('');
+	let isLoading = $state(false);
+	let error = $state('');
+	let success = $state('');
 
 	const session = authClient.useSession();
 

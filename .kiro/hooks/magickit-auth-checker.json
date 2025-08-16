@@ -1,0 +1,11 @@
+{
+  "name": "Magickit Auth Checker",
+  "description": "Ensures proper authentication and authorization patterns",
+  "trigger": {
+    "type": "file_save",
+    "patterns": ["src/routes/admin/**/*.ts", "src/routes/my-account/**/*.ts", "src/routes/**/+layout.server.ts", "src/routes/**/+page.server.ts"]
+  },
+  "prompt": "Review the saved file for proper authentication and authorization:\n\n1. **Better Auth Integration**: Uses existing Better Auth setup, not custom auth\n2. **Role-Based Access**: Properly checks user roles for admin/user routes\n3. **Server-Side Validation**: Validates permissions on server-side, not just client\n4. **Session Management**: Handles sessions securely with proper timeout\n5. **RBAC Implementation**: Uses role-based access control patterns\n6. **Security Headers**: Includes proper security measures\n7. **Error Handling**: Provides appropriate error responses for unauthorized access\n\nIf any security issues or improvements are found, provide specific recommendations. If the auth implementation looks secure, confirm it follows best practices.",
+  "autoApprove": false,
+  "enabled": true
+}

@@ -1,0 +1,11 @@
+{
+  "name": "Magickit Performance Optimizer",
+  "description": "Analyzes and suggests performance improvements for components and pages",
+  "trigger": {
+    "type": "manual",
+    "buttonText": "Optimize Performance"
+  },
+  "prompt": "Analyze the current file for performance optimization opportunities:\n\n1. **Bundle Size**: Check for unnecessary imports or large dependencies\n2. **Lazy Loading**: Identify components that could benefit from lazy loading\n3. **Image Optimization**: Ensure images use WebP format and proper sizing\n4. **Database Queries**: Review for N+1 queries, missing indexes, or inefficient operations\n5. **Caching**: Identify opportunities for caching data or computed values\n6. **Code Splitting**: Suggest route-based or component-based code splitting\n7. **Memory Leaks**: Check for proper cleanup of event listeners and subscriptions\n8. **Reactive Updates**: Ensure efficient use of Svelte 5 reactivity\n\nProvide specific, actionable suggestions for improving performance. Include code examples where helpful.",
+  "autoApprove": false,
+  "enabled": true
+}

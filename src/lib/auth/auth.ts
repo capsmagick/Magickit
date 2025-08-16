@@ -4,6 +4,7 @@ import { mongodbAdapter } from 'better-auth/adapters/mongodb';
 import { admin } from 'better-auth/plugins';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
 import { getRequestEvent } from '$app/server';
+import { enhancedRBAC } from './rbac-plugin';
 
 export const auth = betterAuth({
 	database: mongodbAdapter(db),
@@ -26,6 +27,7 @@ export const auth = betterAuth({
 			bannedUserMessage:
 				'You have been banned from this application. Please contact support if you believe this is an error.'
 		}),
+		enhancedRBAC(), // Our custom RBAC plugin
 		sveltekitCookies(getRequestEvent as any) // must be last
 	]
 });

@@ -10,10 +10,10 @@
 	const id = $props.id();
 	const session = authClient.useSession();
 
-	let email = '';
-	let password = '';
-	let isLoading = false;
-	let error = '';
+	let email = $state('');
+	let password = $state('');
+	let isLoading = $state(false);
+	let error = $state('');
 
 	// Reactive statement to check session and redirect if needed
 	$effect(() => {
