@@ -7,7 +7,10 @@
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { authClient } from '$lib/auth/auth-client';
 	import { goto } from '$app/navigation';
-	import { User, Mail, Shield, LogOut, Settings, Activity, Loader2, CheckCircle, AlertCircle } from '@lucide/svelte';
+	import { 
+		User, Mail, Shield, LogOut, Settings, Activity, Loader2, CheckCircle, AlertCircle,
+		Calendar, Clock, FileText, Heart, Bell, TrendingUp, Eye, MessageSquare
+	} from '@lucide/svelte';
 
 	let name = $state('');
 	let email = $state('');
@@ -51,18 +54,129 @@
 		goto('/');
 	}
 
-	// Mock data for dashboard stats
-	const stats = [
-		{ label: 'Account Status', value: 'Active', icon: CheckCircle, variant: 'default' as const },
-		{ label: 'Member Since', value: 'Jan 2024', icon: Activity, variant: 'secondary' as const },
-		{ label: 'Last Login', value: 'Today', icon: Shield, variant: 'secondary' as const }
+	// Enhanced dashboard statistics
+	const userStats = [
+		{ 
+			label: 'Account Status', 
+			value: 'Active', 
+			icon: CheckCircle, 
+			variant: 'default' as const,
+			description: 'Your account is in good standing'
+		},
+		{ 
+			label: 'Member Since', 
+			value: 'Jan 2024', 
+			icon: Calendar, 
+			variant: 'secondary' as const,
+			description: '11 months as a member'
+		},
+		{ 
+			label: 'Last Login', 
+			value: 'Today', 
+			icon: Clock, 
+			variant: 'secondary' as const,
+			description: '2 hours ago'
+		},
+		{ 
+			label: 'Profile Views', 
+			value: '127', 
+			icon: Eye, 
+			variant: 'secondary' as const,
+			description: '+12% from last month'
+		}
+	];
+
+	// Recent activity data
+	const recentActivity = [
+		{
+			id: 1,
+			action: 'Updated profile information',
+			timestamp: '2 hours ago',
+			icon: User,
+			type: 'profile'
+		},
+		{
+			id: 2,
+			action: 'Changed password',
+			timestamp: '1 day ago',
+			icon: Shield,
+			type: 'security'
+		},
+		{
+			id: 3,
+			action: 'Logged in from new device',
+			timestamp: '3 days ago',
+			icon: Activity,
+			type: 'login'
+		},
+		{
+			id: 4,
+			action: 'Updated notification preferences',
+			timestamp: '1 week ago',
+			icon: Bell,
+			type: 'settings'
+		},
+		{
+			id: 5,
+			action: 'Created new content',
+			timestamp: '2 weeks ago',
+			icon: FileText,
+			type: 'content'
+		}
 	];
 
 	const quickActions = [
-		{ label: 'Account Settings', icon: Settings, action: () => goto('/my-account/settings') },
-		{ label: 'Security', icon: Shield, action: () => goto('/my-account/security') },
-		{ label: 'Profile', icon: User, action: () => goto('/my-account/profile') }
+		{ 
+			label: 'Edit Profile', 
+			icon: User, 
+			action: () => goto('/my-account/profile'),
+			variant: 'default' as const,
+			description: 'Update your personal information'
+		},
+		{ 
+			label: 'Account Settings', 
+			icon: Settings, 
+			action: () => goto('/my-account/settings'),
+			variant: 'secondary' as const,
+			description: 'Manage preferences and privacy'
+		},
+		{ 
+			label: 'Security', 
+			icon: Shield, 
+			action: () => goto('/my-account/security'),
+			variant: 'secondary' as const,
+			description: 'Password and security settings'
+		},
+		{ 
+			label: 'View Activity', 
+			icon: Activity, 
+			action: () => {},
+			variant: 'outline' as const,
+			description: 'See your recent account activity'
+		}
 	];
+
+	function getActivityIcon(type: string) {
+		switch (type) {
+			case 'profile': return User;
+			case 'security': return Shield;
+			case 'login': return Activity;
+			case 'settings': return Settings;
+			case 'content': return FileText;
+			default: return Activity;
+		}
+	}
+
+	function getActivityColor(type: string) {
+		switch (type) {
+			case 'profile': return 'text-blue-600';
+			case 'security': return 'text-green-600';
+			case 'login': return 'text-purple-600';
+			case 'settings': return 'text-orange-600';
+			case 'content': return 'text-pink-600';
+			default: return 'text-gray-600';
+		}
+	}
 </script>
 
 <div class="container mx-auto max-w-4xl px-4 py-6">
@@ -75,37 +189,75 @@
 			</p>
 		</div>
 
-		<!-- Dashboard Overview -->
-		<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-			{#each stats as stat}
-				<Card.Root>
+		<!-- Enhanced Dashboard Statistics -->
+		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+			{#each userStats as stat}
+				<Card.Root class="transition-shadow duration-200 hover:shadow-md">
 					<Card.Content class="p-4">
-						<div class="flex items-center justify-between">
-							<div class="space-y-1">
-								<p class="text-sm text-muted-foreground">{stat.label}</p>
-								<p class="text-lg font-semibold">{stat.value}</p>
-							</div>
+						<div class="flex items-center justify-between mb-2">
 							<div class="p-2 rounded-lg bg-primary/10">
 								<stat.icon class="h-5 w-5 text-primary" />
 							</div>
+							<Badge variant={stat.variant} class="text-xs">
+								{stat.value}
+							</Badge>
+						</div>
+						<div class="space-y-1">
+							<p class="text-sm font-medium">{stat.label}</p>
+							<p class="text-xs text-muted-foreground">{stat.description}</p>
 						</div>
 					</Card.Content>
 				</Card.Root>
 			{/each}
 		</div>
 
-		<!-- Main Content Grid -->
+		<!-- Main Dashboard Grid -->
 		<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-			<!-- Profile Information -->
-			<div class="lg:col-span-2">
+			<!-- Recent Activity Feed -->
+			<div class="lg:col-span-2 space-y-6">
+				<Card.Root>
+					<Card.Header class="space-y-2">
+						<Card.Title class="text-lg flex items-center gap-2">
+							<Activity class="h-5 w-5" />
+							Recent Activity
+						</Card.Title>
+						<Card.Description class="text-sm">
+							Your latest account activity and updates
+						</Card.Description>
+					</Card.Header>
+					<Card.Content class="p-4">
+						<div class="space-y-4">
+							{#each recentActivity as activity}
+								{@const IconComponent = getActivityIcon(activity.type)}
+								<div class="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors duration-200">
+									<div class="p-2 rounded-full bg-muted">
+										<IconComponent class="h-4 w-4 {getActivityColor(activity.type)}" />
+									</div>
+									<div class="flex-1 space-y-1">
+										<p class="text-sm font-medium">{activity.action}</p>
+										<p class="text-xs text-muted-foreground">{activity.timestamp}</p>
+									</div>
+								</div>
+							{/each}
+						</div>
+						<div class="mt-4 pt-4 border-t">
+							<Button variant="outline" size="sm" class="w-full transition-colors duration-200">
+								<Activity class="mr-2 h-4 w-4" />
+								View All Activity
+							</Button>
+						</div>
+					</Card.Content>
+				</Card.Root>
+
+				<!-- Quick Profile Update -->
 				<Card.Root>
 					<Card.Header class="space-y-2">
 						<Card.Title class="text-lg flex items-center gap-2">
 							<User class="h-5 w-5" />
-							Profile Information
+							Quick Profile Update
 						</Card.Title>
 						<Card.Description class="text-sm">
-							Update your personal information and contact details
+							Update your basic information quickly
 						</Card.Description>
 					</Card.Header>
 					<Card.Content class="p-4 space-y-6">
@@ -166,11 +318,11 @@
 								<Button 
 									type="button" 
 									variant="outline" 
-									onclick={handleSignOut}
+									onclick={() => goto('/my-account/profile')}
 									class="transition-colors duration-200"
 								>
-									<LogOut class="mr-2 h-4 w-4" />
-									Sign Out
+									<User class="mr-2 h-4 w-4" />
+									Full Profile
 								</Button>
 							</div>
 						</form>
@@ -204,10 +356,22 @@
 								{$session.data?.user?.role || 'user'}
 							</Badge>
 						</div>
+
+						<div class="pt-4 border-t">
+							<Button 
+								variant="destructive" 
+								size="sm"
+								class="w-full transition-colors duration-200"
+								onclick={handleSignOut}
+							>
+								<LogOut class="mr-2 h-4 w-4" />
+								Sign Out
+							</Button>
+						</div>
 					</Card.Content>
 				</Card.Root>
 
-				<!-- Quick Actions -->
+				<!-- Enhanced Quick Actions -->
 				<Card.Root>
 					<Card.Header class="space-y-2">
 						<Card.Title class="text-lg">Quick Actions</Card.Title>
@@ -215,16 +379,20 @@
 							Common account management tasks
 						</Card.Description>
 					</Card.Header>
-					<Card.Content class="p-4 space-y-2">
+					<Card.Content class="p-4 space-y-3">
 						{#each quickActions as action}
-							<Button 
-								variant="ghost" 
-								class="w-full justify-start transition-colors duration-200"
-								onclick={action.action}
-							>
-								<action.icon class="mr-2 h-4 w-4" />
-								{action.label}
-							</Button>
+							<div class="space-y-2">
+								<Button 
+									variant={action.variant} 
+									size="sm"
+									class="w-full justify-start transition-colors duration-200"
+									onclick={action.action}
+								>
+									<action.icon class="mr-2 h-4 w-4" />
+									{action.label}
+								</Button>
+								<p class="text-xs text-muted-foreground px-2">{action.description}</p>
+							</div>
 						{/each}
 					</Card.Content>
 				</Card.Root>
