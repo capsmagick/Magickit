@@ -5,13 +5,7 @@
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import * as Table from '$lib/components/ui/table/index.js';
-	import {
-		Select,
-		SelectContent,
-		SelectItem,
-		SelectTrigger,
-		SelectValue
-	} from '$lib/components/ui/select/index.js';
+	import * as Select from '$lib/components/ui/select/index.js';
 	import {
 		Dialog,
 		DialogContent,
@@ -168,7 +162,7 @@
 	});
 
 	// Filter feedback based on search and filters
-	const filteredFeedback = $derived(() => {
+	const filteredFeedback = $derived.by(() => {
 		return feedback.filter(item => {
 			const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
 				item.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -183,13 +177,13 @@
 	});
 
 	// Get unique categories
-	const categories = $derived(() => {
+	const categories = $derived.by(() => {
 		const cats = [...new Set(feedback.map(item => item.category))];
 		return cats.sort();
 	});
 
 	// Calculate analytics
-	const analytics = $derived(() => {
+	const analytics = $derived.by(() => {
 		const totalFeedback = feedback.length;
 		const avgRating = totalFeedback > 0 
 			? (feedback.reduce((sum, item) => sum + item.rating, 0) / totalFeedback).toFixed(1)
@@ -389,41 +383,41 @@
 					</div>
 				</div>
 				<div class="flex gap-2">
-					<Select bind:value={statusFilter}>
-						<SelectTrigger class="w-32">
-							<SelectValue placeholder="Status" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="all">All Status</SelectItem>
-							<SelectItem value="pending">Pending</SelectItem>
-							<SelectItem value="in_progress">In Progress</SelectItem>
-							<SelectItem value="reviewed">Reviewed</SelectItem>
-						</SelectContent>
-					</Select>
-					<Select bind:value={ratingFilter}>
-						<SelectTrigger class="w-32">
-							<SelectValue placeholder="Rating" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="all">All Ratings</SelectItem>
-							<SelectItem value="5">5 Stars</SelectItem>
-							<SelectItem value="4">4 Stars</SelectItem>
-							<SelectItem value="3">3 Stars</SelectItem>
-							<SelectItem value="2">2 Stars</SelectItem>
-							<SelectItem value="1">1 Star</SelectItem>
-						</SelectContent>
-					</Select>
-					<Select bind:value={categoryFilter}>
-						<SelectTrigger class="w-32">
-							<SelectValue placeholder="Category" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="all">All Categories</SelectItem>
+					<Select.Root bind:value={statusFilter}>
+						<Select.Trigger class="w-32">
+							<Select.Value placeholder="Status" />
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="all">All Status</Select.Item>
+							<Select.Item value="pending">Pending</Select.Item>
+							<Select.Item value="in_progress">In Progress</Select.Item>
+							<Select.Item value="reviewed">Reviewed</Select.Item>
+						</Select.Content>
+					</Select.Root>
+					<Select.Root bind:value={ratingFilter}>
+						<Select.Trigger class="w-32">
+							<Select.Value placeholder="Rating" />
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="all">All Ratings</Select.Item>
+							<Select.Item value="5">5 Stars</Select.Item>
+							<Select.Item value="4">4 Stars</Select.Item>
+							<Select.Item value="3">3 Stars</Select.Item>
+							<Select.Item value="2">2 Stars</Select.Item>
+							<Select.Item value="1">1 Star</Select.Item>
+						</Select.Content>
+					</Select.Root>
+					<Select.Root bind:value={categoryFilter}>
+						<Select.Trigger class="w-32">
+							<Select.Value placeholder="Category" />
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="all">All Categories</Select.Item>
 							{#each categories as category}
-								<SelectItem value={category}>{category}</SelectItem>
+								<Select.Item value={category}>{category}</Select.Item>
 							{/each}
-						</SelectContent>
-					</Select>
+						</Select.Content>
+					</Select.Root>
 					<Button variant="outline" onclick={resetFilters} class="transition-colors duration-200">
 						Reset
 					</Button>
@@ -538,19 +532,19 @@
 										>
 											<MessageSquare class="h-4 w-4" />
 										</Button>
-										<Select
-											value={item.status}
-											onValueChange={(value) => value && updateFeedbackStatus(item.id, value)}
+										<Select.Root
+											bind:value={item.status}
+											onValueChange={(value: string) => value && updateFeedbackStatus(item.id, value)}
 										>
-											<SelectTrigger class="w-32">
-												<SelectValue />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectItem value="pending">Pending</SelectItem>
-												<SelectItem value="in_progress">In Progress</SelectItem>
-												<SelectItem value="reviewed">Reviewed</SelectItem>
-											</SelectContent>
-										</Select>
+											<Select.Trigger class="w-32">
+												<Select.Value />
+											</Select.Trigger>
+											<Select.Content>
+												<Select.Item value="pending">Pending</Select.Item>
+												<Select.Item value="in_progress">In Progress</Select.Item>
+												<Select.Item value="reviewed">Reviewed</Select.Item>
+											</Select.Content>
+										</Select.Root>
 										<Button 
 											variant="ghost" 
 											size="icon" 

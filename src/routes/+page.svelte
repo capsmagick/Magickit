@@ -2,9 +2,10 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
+	import * as Avatar from '$lib/components/ui/avatar/index.js';
 	import { authClient } from '$lib/auth/auth-client';
 	import { goto } from '$app/navigation';
-	import { Shield, Users, Palette, Zap, Lock, Code } from '@lucide/svelte';
+	import { Shield, Users, Palette, Zap, Lock, Code, Star, ArrowRight, CheckCircle } from '@lucide/svelte';
 
 	const session = authClient.useSession();
 
@@ -15,21 +16,101 @@
 			goto('/signup');
 		}
 	}
+
+	// Testimonials data
+	const testimonials = [
+		{
+			name: 'Sarah Chen',
+			role: 'Full Stack Developer',
+			company: 'TechCorp',
+			avatar: '/avatars/sarah.jpg',
+			initials: 'SC',
+			quote: 'MagicKit saved me weeks of development time. The authentication system and admin panel are exactly what I needed for my SaaS project.',
+			rating: 5
+		},
+		{
+			name: 'Marcus Rodriguez',
+			role: 'Startup Founder',
+			company: 'InnovateLab',
+			avatar: '/avatars/marcus.jpg',
+			initials: 'MR',
+			quote: 'The code quality and documentation are outstanding. I was able to launch my MVP in just a few days using this template.',
+			rating: 5
+		},
+		{
+			name: 'Emily Johnson',
+			role: 'Product Manager',
+			company: 'DesignStudio',
+			avatar: '/avatars/emily.jpg',
+			initials: 'EJ',
+			quote: 'Beautiful UI components and excellent TypeScript support. This template is a game-changer for rapid prototyping.',
+			rating: 5
+		}
+	];
+
+	// Enhanced features data
+	const features = [
+		{
+			icon: Shield,
+			title: 'Authentication',
+			description: 'Secure email/password and social authentication with Better Auth'
+		},
+		{
+			icon: Users,
+			title: 'User Management',
+			description: 'Admin panel for managing users, roles, and permissions'
+		},
+		{
+			icon: Palette,
+			title: 'Modern UI',
+			description: 'Beautiful components built with shadcn-svelte'
+		},
+		{
+			icon: Zap,
+			title: 'Fast Development',
+			description: 'Pre-built pages and components for rapid prototyping'
+		},
+		{
+			icon: Lock,
+			title: 'Security First',
+			description: 'Built-in security features and best practices'
+		},
+		{
+			icon: Code,
+			title: 'TypeScript',
+			description: 'Full TypeScript support for better development experience'
+		}
+	];
 </script>
 
 <div class="container mx-auto px-4 py-6">
 	<!-- Hero Section -->
-	<section class="text-center space-y-6 py-12">
-		<div class="space-y-4">
-			<h1 class="text-2xl md:text-4xl lg:text-5xl font-bold tracking-tight">
-				Welcome to MagicKit
-			</h1>
-			<p class="mx-auto max-w-2xl text-lg text-muted-foreground leading-relaxed">
-				A powerful universal web application template built with SvelteKit, Better Auth, and modern UI components
-			</p>
+	<section class="bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg">
+		<div class="container mx-auto px-4 py-24">
+			<div class="max-w-4xl mx-auto text-center space-y-6">
+				<div class="space-y-4">
+					<h1 class="text-2xl md:text-4xl lg:text-6xl font-bold tracking-tight">
+						Welcome to MagicKit
+					</h1>
+					<p class="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+						A powerful universal web application template built with SvelteKit, Better Auth, and modern UI components
+					</p>
+				</div>
+				<div class="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+					<Button size="lg" onclick={handleGetStarted} class="transition-colors duration-200">
+						{$session.data ? 'Go to Dashboard' : 'Get Started'}
+						<ArrowRight class="ml-2 h-4 w-4" />
+					</Button>
+					<Button size="lg" variant="outline" onclick={() => goto('/about')} class="transition-colors duration-200">
+						Learn More
+					</Button>
+				</div>
+			</div>
 		</div>
+	</section>
 
-		{#if $session.data}
+	<!-- User Status Section -->
+	<section class="py-6">{#if $session.data}
 			<Card.Root class="mx-auto max-w-md">
 				<Card.Header class="space-y-2">
 					<Card.Title class="text-2xl">Welcome back!</Card.Title>
@@ -86,101 +167,77 @@
 		</div>
 
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-			<Card.Root class="transition-shadow duration-200 hover:shadow-md">
-				<Card.Header class="space-y-2">
-					<div class="flex items-center gap-3">
-						<div class="p-2 rounded-lg bg-primary/10">
-							<Shield class="h-6 w-6 text-primary" />
+			{#each features as feature}
+				<Card.Root class="transition-shadow duration-200 hover:shadow-md">
+					<Card.Content class="p-6 text-center space-y-4">
+						<div class="flex justify-center">
+							<div class="p-3 rounded-lg bg-primary/10">
+								{#if feature.icon === Shield}
+									<Shield class="h-8 w-8 text-primary" />
+								{:else if feature.icon === Users}
+									<Users class="h-8 w-8 text-primary" />
+								{:else if feature.icon === Palette}
+									<Palette class="h-8 w-8 text-primary" />
+								{:else if feature.icon === Zap}
+									<Zap class="h-8 w-8 text-primary" />
+								{:else if feature.icon === Lock}
+									<Lock class="h-8 w-8 text-primary" />
+								{:else if feature.icon === Code}
+									<Code class="h-8 w-8 text-primary" />
+								{/if}
+							</div>
 						</div>
-						<Card.Title class="text-lg">Authentication</Card.Title>
-					</div>
-				</Card.Header>
-				<Card.Content class="p-4">
-					<p class="text-muted-foreground text-sm leading-relaxed">
-						Secure email/password and social authentication with Better Auth
-					</p>
-				</Card.Content>
-			</Card.Root>
+						<div class="space-y-2">
+							<h3 class="text-lg font-semibold">{feature.title}</h3>
+							<p class="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
+						</div>
+					</Card.Content>
+				</Card.Root>
+			{/each}
+		</div>
+	</section>
 
-			<Card.Root class="transition-shadow duration-200 hover:shadow-md">
-				<Card.Header class="space-y-2">
-					<div class="flex items-center gap-3">
-						<div class="p-2 rounded-lg bg-primary/10">
-							<Users class="h-6 w-6 text-primary" />
-						</div>
-						<Card.Title class="text-lg">User Management</Card.Title>
-					</div>
-				</Card.Header>
-				<Card.Content class="p-4">
-					<p class="text-muted-foreground text-sm leading-relaxed">
-						Admin panel for managing users, roles, and permissions
-					</p>
-				</Card.Content>
-			</Card.Root>
-
-			<Card.Root class="transition-shadow duration-200 hover:shadow-md">
-				<Card.Header class="space-y-2">
-					<div class="flex items-center gap-3">
-						<div class="p-2 rounded-lg bg-primary/10">
-							<Palette class="h-6 w-6 text-primary" />
-						</div>
-						<Card.Title class="text-lg">Modern UI</Card.Title>
-					</div>
-				</Card.Header>
-				<Card.Content class="p-4">
-					<p class="text-muted-foreground text-sm leading-relaxed">
-						Beautiful components built with shadcn-svelte
-					</p>
-				</Card.Content>
-			</Card.Root>
-
-			<Card.Root class="transition-shadow duration-200 hover:shadow-md">
-				<Card.Header class="space-y-2">
-					<div class="flex items-center gap-3">
-						<div class="p-2 rounded-lg bg-primary/10">
-							<Zap class="h-6 w-6 text-primary" />
-						</div>
-						<Card.Title class="text-lg">Fast Development</Card.Title>
-					</div>
-				</Card.Header>
-				<Card.Content class="p-4">
-					<p class="text-muted-foreground text-sm leading-relaxed">
-						Pre-built pages and components for rapid prototyping
-					</p>
-				</Card.Content>
-			</Card.Root>
-
-			<Card.Root class="transition-shadow duration-200 hover:shadow-md">
-				<Card.Header class="space-y-2">
-					<div class="flex items-center gap-3">
-						<div class="p-2 rounded-lg bg-primary/10">
-							<Lock class="h-6 w-6 text-primary" />
-						</div>
-						<Card.Title class="text-lg">Security First</Card.Title>
-					</div>
-				</Card.Header>
-				<Card.Content class="p-4">
-					<p class="text-muted-foreground text-sm leading-relaxed">
-						Built-in security features and best practices
-					</p>
-				</Card.Content>
-			</Card.Root>
-
-			<Card.Root class="transition-shadow duration-200 hover:shadow-md">
-				<Card.Header class="space-y-2">
-					<div class="flex items-center gap-3">
-						<div class="p-2 rounded-lg bg-primary/10">
-							<Code class="h-6 w-6 text-primary" />
-						</div>
-						<Card.Title class="text-lg">TypeScript</Card.Title>
-					</div>
-				</Card.Header>
-				<Card.Content class="p-4">
-					<p class="text-muted-foreground text-sm leading-relaxed">
-						Full TypeScript support for better development experience
-					</p>
-				</Card.Content>
-			</Card.Root>
+	<!-- Testimonials Section -->
+	<section class="py-16 bg-muted/50">
+		<div class="container mx-auto px-4">
+			<div class="text-center space-y-4 mb-12">
+				<h2 class="text-2xl lg:text-3xl font-bold">What Developers Say</h2>
+				<p class="text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed">
+					Join thousands of developers who trust MagicKit for their projects
+				</p>
+			</div>
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+				{#each testimonials as testimonial}
+					<Card.Root class="transition-shadow duration-200 hover:shadow-md">
+						<Card.Content class="p-6 space-y-4">
+							<!-- Rating Stars -->
+							<div class="flex justify-center space-x-1">
+								{#each Array(testimonial.rating) as _}
+									<Star class="h-4 w-4 fill-yellow-400 text-yellow-400" />
+								{/each}
+							</div>
+							
+							<!-- Quote -->
+							<blockquote class="text-muted-foreground italic text-sm leading-relaxed text-center">
+								"{testimonial.quote}"
+							</blockquote>
+							
+							<!-- Author -->
+							<div class="flex items-center justify-center space-x-3 pt-2">
+								<Avatar.Root>
+									<Avatar.Image src={testimonial.avatar} alt={testimonial.name} />
+									<Avatar.Fallback class="text-sm">{testimonial.initials}</Avatar.Fallback>
+								</Avatar.Root>
+								<div class="text-center">
+									<p class="font-semibold text-sm">{testimonial.name}</p>
+									<p class="text-xs text-muted-foreground">{testimonial.role}</p>
+									<p class="text-xs text-muted-foreground">{testimonial.company}</p>
+								</div>
+							</div>
+						</Card.Content>
+					</Card.Root>
+				{/each}
+			</div>
 		</div>
 	</section>
 
@@ -191,9 +248,10 @@
 			<p class="text-muted-foreground max-w-xl mx-auto text-lg leading-relaxed">
 				Join thousands of developers building amazing applications with MagicKit
 			</p>
-			<div class="flex flex-col sm:flex-row gap-4 justify-center">
+			<div class="flex flex-col sm:flex-row gap-4 justify-center pt-4">
 				<Button size="lg" onclick={handleGetStarted} class="transition-colors duration-200">
 					{$session.data ? 'Go to Dashboard' : 'Get Started'}
+					<ArrowRight class="ml-2 h-4 w-4" />
 				</Button>
 				<Button size="lg" variant="outline" onclick={() => goto('/about')} class="transition-colors duration-200">
 					Learn More

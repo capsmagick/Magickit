@@ -34,8 +34,8 @@
 	const session = authClient.useSession();
 
 	// IP Access Rules data
-	let ipAccessRules = $state([]);
-	let accessAttempts = $state([]);
+	let ipAccessRules = $state<any[]>([]);
+	let accessAttempts = $state<any[]>([]);
 
 	// Form data
 	let newIPRule = $state({
