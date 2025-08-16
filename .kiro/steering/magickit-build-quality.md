@@ -185,31 +185,98 @@ ction handleSubmit() {
 ## Template Syntax Standards
 
 ### ✅ REQUIRED: Proper {@const} Usage
-**NEVER** use `{@const}` outside of valid block contexts. **ALWAYS** wrap in conditional blocks when needed.
+**CRITICAL:** `{@const}` must be the immediate child of specific block contexts. **NEVER** place `{@const}` inside regular HTML elements or nested within other elements.
+
+**Valid parent contexts for `{@const}`:**
+- `{#snippet}`
+- `{#if}`, `{:else if}`, `{:else}`
+- `{#each}`
+- `{:then}`, `{:catch}`
+- `<svelte:fragment>`
+- `<svelte:boundary>`
+- `<Component>`
 
 ```svelte
-<!-- ✅ CORRECT -->
-{#if selectedItem}
-  {@const ItemIcon = getIcon(selectedItem.type)}
-  <ItemIcon class="h-4 w-4" />
-  <span>{selectedItem.name}</span>
-{/if}
-
-<!-- ✅ CORRECT - Alternative approach -->
-{#each items as item}
-  {@const ItemIcon = getIcon(item.type)}
-  <div class="flex items-center gap-2">
-    <ItemIcon class="h-4 w-4" />
-    <span>{item.name}</span>
-  </div>
+<!-- ✅ CORRECT - {@const} as immediate child of {#each} -->
+{#each filteredAlerts as alert}
+  {@const CategoryIcon = getCategoryIcon(alert.category)}
+  {@const statusInfo = getStatusBadge(alert.status)}
+  <Table.Row>
+    <Table.Cell>
+      <div class="flex items-center gap-2">
+        <CategoryIcon class="h-4 w-4" />
+        <span>{alert.title}</span>
+      </div>
+    </Table.Cell>
+    <Table.Cell>
+      <statusInfo.icon class="h-3 w-3" />
+      <Badge variant={statusInfo.variant}>{statusInfo.text}</Badge>
+    </Table.Cell>
+  </Table.Row>
 {/each}
 
-<!-- ❌ INCORRECT - Will cause build errors -->
+<!-- ✅ CORRECT - {@const} as immediate child of {#if} -->
+{#if selectedAlert}
+  {@const CategoryIcon = getCategoryIcon(selectedAlert.category)}
+  <div class="alert-details">
+    <CategoryIcon class="h-6 w-6" />
+    <span>{selectedAlert.title}</span>
+  </div>
+{/if}
+
+<!-- ❌ INCORRECT - {@const} inside Table.Cell (not a valid parent) -->
+{#each filteredAlerts as alert}
+  <Table.Row>
+    <Table.Cell>
+      <div class="flex items-center gap-2">
+        {@const CategoryIcon = getCategoryIcon(alert.category)}
+        <CategoryIcon class="h-4 w-4" />
+      </div>
+    </Table.Cell>
+  </Table.Row>
+{/each}
+
+<!-- ❌ INCORRECT - {@const} inside regular div -->
 <div class="flex items-center gap-2">
   {@const ItemIcon = getIcon(selectedItem.type)}
   <ItemIcon class="h-4 w-4" />
   <span>{selectedItem.name}</span>
 </div>
+```
+
+### ✅ REQUIRED: Multiple {@const} Declarations
+**ALWAYS** place all `{@const}` declarations at the beginning of their parent block, before any other content.
+
+```svelte
+<!-- ✅ CORRECT - All {@const} declarations at the start -->
+{#each notifications as notification}
+  {@const statusInfo = getStatusBadge(notification.status)}
+  {@const priorityInfo = getPriorityBadge(notification.priority)}
+  {@const typeInfo = getTypeBadge(notification.type)}
+  <Table.Row>
+    <Table.Cell>
+      <statusInfo.icon class="h-3 w-3" />
+      <Badge variant={statusInfo.variant}>{statusInfo.text}</Badge>
+    </Table.Cell>
+    <Table.Cell>
+      <Badge variant={priorityInfo.variant}>{priorityInfo.text}</Badge>
+    </Table.Cell>
+  </Table.Row>
+{/each}
+
+<!-- ❌ INCORRECT - {@const} scattered throughout -->
+{#each notifications as notification}
+  <Table.Row>
+    <Table.Cell>
+      {@const statusInfo = getStatusBadge(notification.status)}
+      <statusInfo.icon class="h-3 w-3" />
+    </Table.Cell>
+    <Table.Cell>
+      {@const priorityInfo = getPriorityBadge(notification.priority)}
+      <Badge variant={priorityInfo.variant}>{priorityInfo.text}</Badge>
+    </Table.Cell>
+  </Table.Row>
+{/each}
 ```
 
 ### ✅ REQUIRED: Proper HTML Tag Formatting
@@ -241,9 +308,12 @@ Before committing code, **ALWAYS** verify:
 - [ ] All computed values use `let variable = $derived()` syntax
 - [ ] No broken comments or function declarations
 - [ ] Proper parentheses/bracket matching in `$state()` declarations
-- [ ] `{@const}` only used within valid block contexts
+- [ ] `{@const}` only used within valid block contexts (immediate children of `{#if}`, `{#each}`, etc.)
+- [ ] All `{@const}` declarations placed at the beginning of their parent block
 - [ ] No broken HTML tag formatting
 - [ ] Script tags properly separated from other elements
+- [ ] Component imports use correct syntax (no `.Root` for components that don't export it)
+- [ ] Badge components use `<Badge>` not `<Badge.Root>`
 - [ ] Build runs without warnings: `bun run build`
 
 ### Build Command Verification
@@ -318,6 +388,73 @@ let config = $state({
 });
 ```
 
+### Error: "{@const} must be the immediate child of {#snippet}, {#if}, {:else if}, {:else}, {#each}, {:then}, {:catch}, <svelte:fragment>, <svelte:boundary> or <Component>"
+**Solution:** Move `{@const}` declarations to be immediate children of valid parent blocks:
+
+```svelte
+<!-- Before - CAUSES BUILD ERROR -->
+{#each items as item}
+  <Table.Row>
+    <Table.Cell>
+      <div class="flex items-center gap-2">
+        {@const ItemIcon = getIcon(item.type)}
+        <ItemIcon class="h-4 w-4" />
+      </div>
+    </Table.Cell>
+  </Table.Row>
+{/each}
+
+<!-- After - FIXED -->
+{#each items as item}
+  {@const ItemIcon = getIcon(item.type)}
+  <Table.Row>
+    <Table.Cell>
+      <div class="flex items-center gap-2">
+        <ItemIcon class="h-4 w-4" />
+      </div>
+    </Table.Cell>
+  </Table.Row>
+{/each}
+```
+
+### Error: "Root" is not exported by component
+**Solution:** Use correct component import syntax - avoid `.Root` suffix for components that don't export it:
+
+```svelte
+<!-- Before - CAUSES WARNINGS -->
+<script lang="ts">
+  import { Badge } from '$lib/components/ui/badge';
+</script>
+
+<Badge.Root variant="default">
+  Active
+</Badge.Root>
+
+<!-- After - FIXED -->
+<script lang="ts">
+  import { Badge } from '$lib/components/ui/badge';
+</script>
+
+<Badge variant="default">
+  Active
+</Badge>
+```
+
+### Error: "Cannot call a namespace" with Badge component
+**Solution:** Check component exports and use correct syntax:
+
+```svelte
+<!-- Before - CAUSES ERRORS -->
+<Badge.Root variant="secondary">
+  {user.role}
+</Badge.Root>
+
+<!-- After - FIXED -->
+<Badge variant="secondary">
+  {user.role}
+</Badge>
+```
+
 ## Automated Quality Checks
 
 ### Pre-commit Hooks
@@ -344,9 +481,28 @@ If build is broken:
 
 1. **Identify the error type** from build output
 2. **Check recent changes** for common patterns above
-3. **Fix syntax issues** following the correct patterns
+3. **Fix syntax issues** following the correct patterns:
+   - For `{@const}` errors: Move declarations to be immediate children of valid blocks
+   - For component import errors: Check component exports and remove incorrect `.Root` usage
+   - For namespace errors: Verify correct component syntax
 4. **Verify fix** with `bun run build`
 5. **Run full test suite** to ensure no regressions
+
+### Quick Fix Commands for Common Issues
+
+```bash
+# Check for {@const} placement issues
+grep -n "{@const" src/**/*.svelte
+
+# Check for incorrect Badge.Root usage
+grep -n "Badge\.Root" src/**/*.svelte
+
+# Check for broken component imports
+grep -n "\.Root" src/**/*.svelte
+
+# Run build to verify fixes
+bun run build
+```
 
 ## Continuous Improvement
 
@@ -604,4 +760,195 @@ let selectedItem = $state(null);
 let selectedItem = $state<Item | null>(null);
 ```
 
-By following these standards, we ensure consistent, error-free builds and maintain high code quality throughout the Magickit project.
+## Notification System Specific Patterns
+
+### ✅ REQUIRED: Table Component {@const} Usage
+**ALWAYS** place `{@const}` declarations at the beginning of `{#each}` blocks when working with table rows that need computed values.
+
+```svelte
+<!-- ✅ CORRECT - Notification system pattern -->
+<Table.Body>
+  {#each filteredNotifications as notification}
+    {@const statusInfo = getStatusBadge(notification.status)}
+    {@const priorityInfo = getPriorityBadge(notification.priority)}
+    {@const typeInfo = getTypeBadge(notification.type)}
+    <Table.Row class="transition-colors duration-200 hover:bg-muted/50">
+      <Table.Cell>
+        <div class="flex items-center gap-2">
+          <statusInfo.icon class="h-3 w-3" />
+          <Badge variant={statusInfo.variant} class="text-xs">
+            {statusInfo.text}
+          </Badge>
+        </div>
+      </Table.Cell>
+      <Table.Cell>
+        <Badge variant={priorityInfo.variant} class="text-xs">
+          {priorityInfo.text}
+        </Badge>
+      </Table.Cell>
+    </Table.Row>
+  {/each}
+</Table.Body>
+
+<!-- ❌ INCORRECT - Will cause build errors -->
+<Table.Body>
+  {#each filteredNotifications as notification}
+    <Table.Row class="transition-colors duration-200 hover:bg-muted/50">
+      <Table.Cell>
+        <div class="flex items-center gap-2">
+          {@const statusInfo = getStatusBadge(notification.status)}
+          <statusInfo.icon class="h-3 w-3" />
+        </div>
+      </Table.Cell>
+    </Table.Row>
+  {/each}
+</Table.Body>
+```
+
+### ✅ REQUIRED: Dialog Component {@const} Usage
+**ALWAYS** place `{@const}` declarations immediately after conditional blocks in dialogs.
+
+```svelte
+<!-- ✅ CORRECT - Dialog pattern -->
+<Dialog.Root bind:open={showDetailsDialog}>
+  <Dialog.Content>
+    {#if selectedAlert}
+      {@const CategoryIcon = getCategoryIcon(selectedAlert.category)}
+      <div class="space-y-6">
+        <div class="flex items-start gap-4">
+          <div class="rounded-lg p-3 bg-muted">
+            <CategoryIcon class="h-6 w-6" />
+          </div>
+          <div class="flex-1 space-y-2">
+            <h3 class="text-lg font-semibold">{selectedAlert.title}</h3>
+          </div>
+        </div>
+      </div>
+    {/if}
+  </Dialog.Content>
+</Dialog.Root>
+
+<!-- ❌ INCORRECT - Will cause build errors -->
+<Dialog.Root bind:open={showDetailsDialog}>
+  <Dialog.Content>
+    {#if selectedAlert}
+      <div class="space-y-6">
+        <div class="flex items-start gap-4">
+          {@const CategoryIcon = getCategoryIcon(selectedAlert.category)}
+          <div class="rounded-lg p-3 bg-muted">
+            <CategoryIcon class="h-6 w-6" />
+          </div>
+        </div>
+      </div>
+    {/if}
+  </Dialog.Content>
+</Dialog.Root>
+```
+
+### ✅ REQUIRED: Component Icon Pattern
+**ALWAYS** use conditional rendering or proper `{@const}` placement when working with dynamic icon components.
+
+```svelte
+<!-- ✅ CORRECT - Dynamic icon with {@const} -->
+{#each alerts as alert}
+  {@const CategoryIcon = getCategoryIcon(alert.category)}
+  <div class="flex items-center gap-3">
+    <div class="rounded-lg p-2 bg-muted">
+      <CategoryIcon class="h-4 w-4" />
+    </div>
+    <span>{alert.title}</span>
+  </div>
+{/each}
+
+<!-- ✅ CORRECT - Alternative with conditional rendering -->
+{#each alerts as alert}
+  <div class="flex items-center gap-3">
+    <div class="rounded-lg p-2 bg-muted">
+      {#if alert.category === 'performance'}
+        <Activity class="h-4 w-4" />
+      {:else if alert.category === 'database'}
+        <Database class="h-4 w-4" />
+      {:else if alert.category === 'security'}
+        <Shield class="h-4 w-4" />
+      {:else}
+        <AlertTriangle class="h-4 w-4" />
+      {/if}
+    </div>
+    <span>{alert.title}</span>
+  </div>
+{/each}
+```
+
+## Admin Panel Component Patterns
+
+### ✅ REQUIRED: Consistent Badge Usage
+**ALWAYS** use the correct Badge component syntax throughout admin panels.
+
+```svelte
+<!-- ✅ CORRECT - Standard badge usage -->
+<script lang="ts">
+  import { Badge } from '$lib/components/ui/badge';
+</script>
+
+<Badge variant="default">Active</Badge>
+<Badge variant="secondary">Inactive</Badge>
+<Badge variant="destructive">Error</Badge>
+<Badge variant="outline">Draft</Badge>
+
+<!-- ❌ INCORRECT - Will cause import errors -->
+<Badge.Root variant="default">Active</Badge.Root>
+```
+
+### ✅ REQUIRED: Status Badge Helper Functions
+**ALWAYS** create helper functions that return consistent badge configurations.
+
+```svelte
+<!-- ✅ CORRECT - Status badge helper pattern -->
+<script lang="ts">
+  function getStatusBadge(status: string) {
+    switch (status) {
+      case 'active':
+        return { variant: 'default' as const, text: 'Active', icon: CheckCircle };
+      case 'inactive':
+        return { variant: 'secondary' as const, text: 'Inactive', icon: XCircle };
+      case 'error':
+        return { variant: 'destructive' as const, text: 'Error', icon: AlertTriangle };
+      default:
+        return { variant: 'outline' as const, text: status, icon: Clock };
+    }
+  }
+</script>
+
+{#each items as item}
+  {@const statusInfo = getStatusBadge(item.status)}
+  <div class="flex items-center gap-2">
+    <statusInfo.icon class="h-3 w-3" />
+    <Badge variant={statusInfo.variant} class="text-xs">
+      {statusInfo.text}
+    </Badge>
+  </div>
+{/each}
+```
+
+## Build Error Prevention Checklist
+
+### Before Creating New Components
+- [ ] Check if component exports `.Root` or uses direct export
+- [ ] Plan `{@const}` usage and identify valid parent blocks
+- [ ] Verify all reactive variables will use `$state()`
+- [ ] Confirm proper TypeScript types for complex state
+
+### During Development
+- [ ] Run `bun run build` frequently to catch errors early
+- [ ] Test `{@const}` placement before adding complex logic
+- [ ] Verify component imports work correctly
+- [ ] Check that all dynamic icons have proper conditional rendering
+
+### Before Committing
+- [ ] Run full build: `bun run build`
+- [ ] Check for any component import warnings
+- [ ] Verify all `{@const}` declarations are properly placed
+- [ ] Confirm no broken HTML tag formatting
+- [ ] Test that all interactive elements work correctly
+
+By following these updated patterns, especially the `{@const}` placement rules and component import patterns, we can prevent the build errors encountered during the notification system implementation and maintain consistent, error-free code throughout the Magickit project.

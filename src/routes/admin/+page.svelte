@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
+	import * as Badge from '$lib/components/ui/badge/index.js';
 	import { authClient } from '$lib/auth/auth-client';
 	import { goto } from '$app/navigation';
 	import {
@@ -13,10 +14,16 @@
 		UserPlus,
 		Shield,
 		Activity,
-		Settings
+		Settings,
+		TrendingUp,
+		Database,
+		CheckCircle,
+		AlertTriangle,
+		Loader2
 	} from '@lucide/svelte';
 
-	let hasCheckedAuth = false;
+	let hasCheckedAuth = $state(false);
+	let isLoading = $state(true);
 	const session = authClient.useSession();
 
 	// Reactive statement to check session and redirect if needed
@@ -27,8 +34,20 @@
 				goto('/login?returnTo=/admin');
 				return;
 			}
+			// Simulate loading dashboard data
+			setTimeout(() => {
+				isLoading = false;
+			}, 1000);
 		}
 	});
+
+	// Mock dashboard metrics
+	const metrics = [
+		{ label: 'Total Users', value: '1,234', change: '+12%', trend: 'up', icon: Users },
+		{ label: 'Active Sessions', value: '89', change: '+5%', trend: 'up', icon: Activity },
+		{ label: 'System Health', value: '99.9%', change: '0%', trend: 'stable', icon: CheckCircle },
+		{ label: 'Security Alerts', value: '3', change: '-2', trend: 'down', icon: Shield }
+	];
 
 	const adminSections = [
 		{
@@ -99,101 +118,157 @@
 			action: () => goto('/admin/settings')
 		}
 	];
+
+	const systemStatus = [
+		{ label: 'System Status', value: 'Active', status: 'success', icon: CheckCircle },
+		{ label: 'Database', value: 'Online', status: 'success', icon: Database },
+		{ label: 'Authentication', value: 'Secure', status: 'success', icon: Shield }
+	];
 </script>
 
-<div class="container mx-auto space-y-6 p-6">
-	<!-- Header -->
-	<div class="mb-8">
-		<h1 class="text-3xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
-		<p class="mt-2 text-gray-600 dark:text-gray-400">
-			Welcome back, {$session.data?.user?.name || 'Admin'}. Manage your system from here.
-		</p>
-	</div>
+<div class="container mx-auto px-4 py-6">
+	<div class="space-y-6">
+		<!-- Header -->
+		<div class="space-y-2">
+			<h1 class="text-2xl font-bold">Admin Dashboard</h1>
+			<p class="text-muted-foreground text-sm">
+				Welcome back, {$session.data?.user?.name || 'Admin'}. Manage your system from here.
+			</p>
+		</div>
 
-	<!-- Quick Actions -->
-	<Card.Root>
-		<Card.Header>
-			<Card.Title class="flex items-center gap-2 text-xl">
-				<LayoutDashboard class="h-5 w-5" />
-				Quick Actions
-			</Card.Title>
-			<Card.Description>Common administrative tasks</Card.Description>
-		</Card.Header>
-		<Card.Content>
-			<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-				{#each quickActions as action}
-					<Button
-						variant="outline"
-						class="flex h-auto flex-col items-center gap-3 p-4 text-center"
-						onclick={action.action}
-					>
-						<action.icon class="h-8 w-8 text-primary" />
-						<div>
-							<div class="font-semibold">{action.title}</div>
-							<div class="text-xs text-muted-foreground">{action.description}</div>
-						</div>
-					</Button>
+		{#if isLoading}
+			<!-- Loading State -->
+			<div class="flex items-center justify-center py-12">
+				<div class="text-center space-y-4">
+					<Loader2 class="h-8 w-8 animate-spin mx-auto text-primary" />
+					<p class="text-sm text-muted-foreground">Loading dashboard...</p>
+				</div>
+			</div>
+		{:else}
+			<!-- Dashboard Metrics -->
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+				{#each metrics as metric}
+					<Card.Root>
+						<Card.Content class="p-4">
+							<div class="flex items-center justify-between">
+								<div class="space-y-1">
+									<p class="text-sm text-muted-foreground">{metric.label}</p>
+									<p class="text-2xl font-bold">{metric.value}</p>
+									<div class="flex items-center gap-1">
+										{#if metric.trend === 'up'}
+											<TrendingUp class="h-3 w-3 text-green-600" />
+											<span class="text-sm text-green-600">{metric.change}</span>
+										{:else if metric.trend === 'down'}
+											<TrendingUp class="h-3 w-3 text-red-600 rotate-180" />
+											<span class="text-sm text-red-600">{metric.change}</span>
+										{:else}
+											<span class="text-sm text-muted-foreground">{metric.change}</span>
+										{/if}
+									</div>
+								</div>
+								<div class="p-2 rounded-lg bg-primary/10">
+									<metric.icon class="h-5 w-5 text-primary" />
+								</div>
+							</div>
+						</Card.Content>
+					</Card.Root>
 				{/each}
 			</div>
-		</Card.Content>
-	</Card.Root>
 
-	<!-- Admin Sections -->
-	<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-		{#each adminSections as section}
-			<Card.Root
-				class="cursor-pointer transition-shadow hover:shadow-lg"
-				onclick={() => goto(section.url)}
-			>
-				<Card.Header>
-					<div class="flex items-center gap-3">
-						<div class="rounded-lg p-2 {section.color} text-white">
-							<section.icon class="h-6 w-6" />
-						</div>
-						<div>
-							<Card.Title class="text-lg">{section.title}</Card.Title>
-							<Card.Description>{section.description}</Card.Description>
-						</div>
-					</div>
+			<!-- Quick Actions -->
+			<Card.Root>
+				<Card.Header class="space-y-2">
+					<Card.Title class="text-lg flex items-center gap-2">
+						<LayoutDashboard class="h-5 w-5" />
+						Quick Actions
+					</Card.Title>
+					<Card.Description class="text-sm">
+						Common administrative tasks
+					</Card.Description>
 				</Card.Header>
-				<Card.Content>
-					<ul class="space-y-1">
-						{#each section.features as feature}
-							<li class="flex items-center gap-2 text-sm text-muted-foreground">
-								<div class="h-1.5 w-1.5 rounded-full bg-primary"></div>
-								{feature}
-							</li>
+				<Card.Content class="p-4">
+					<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+						{#each quickActions as action}
+							<Button
+								variant="outline"
+								class="h-auto flex-col items-center gap-3 p-4 text-center transition-colors duration-200 hover:bg-muted/50"
+								onclick={action.action}
+							>
+								<action.icon class="h-8 w-8 text-primary" />
+								<div class="space-y-1">
+									<div class="font-semibold text-sm">{action.title}</div>
+									<div class="text-xs text-muted-foreground">{action.description}</div>
+								</div>
+							</Button>
 						{/each}
-					</ul>
-					<Button variant="outline" class="mt-4 w-full">
-						Manage {section.title}
-					</Button>
+					</div>
 				</Card.Content>
 			</Card.Root>
-		{/each}
-	</div>
 
-	<!-- System Status -->
-	<Card.Root>
-		<Card.Header>
-			<Card.Title class="text-xl">System Status</Card.Title>
-			<Card.Description>Current system health and metrics</Card.Description>
-		</Card.Header>
-		<Card.Content>
-			<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-				<div class="rounded-lg bg-green-50 p-4 text-center dark:bg-green-900/20">
-					<div class="text-2xl font-bold text-green-600 dark:text-green-400">Active</div>
-					<div class="text-sm text-green-600 dark:text-green-400">System Status</div>
-				</div>
-				<div class="rounded-lg bg-blue-50 p-4 text-center dark:bg-blue-900/20">
-					<div class="text-2xl font-bold text-blue-600 dark:text-blue-400">Online</div>
-					<div class="text-sm text-blue-600 dark:text-blue-400">Database</div>
-				</div>
-				<div class="rounded-lg bg-purple-50 p-4 text-center dark:bg-purple-900/20">
-					<div class="text-2xl font-bold text-purple-600 dark:text-purple-400">Secure</div>
-					<div class="text-sm text-purple-600 dark:text-purple-400">Authentication</div>
-				</div>
+			<!-- Admin Sections -->
+			<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+				{#each adminSections as section}
+					<Card.Root
+						class="cursor-pointer transition-shadow duration-200 hover:shadow-md"
+						onclick={() => goto(section.url)}
+					>
+						<Card.Header class="space-y-2">
+							<div class="flex items-center gap-3">
+								<div class="rounded-lg p-2 {section.color} text-white">
+									<section.icon class="h-6 w-6" />
+								</div>
+								<div class="space-y-1">
+									<Card.Title class="text-lg">{section.title}</Card.Title>
+									<Card.Description class="text-sm">{section.description}</Card.Description>
+								</div>
+							</div>
+						</Card.Header>
+						<Card.Content class="p-4">
+							<ul class="space-y-2 mb-4">
+								{#each section.features as feature}
+									<li class="flex items-center gap-2 text-sm text-muted-foreground">
+										<div class="h-1.5 w-1.5 rounded-full bg-primary"></div>
+										{feature}
+									</li>
+								{/each}
+							</ul>
+							<Button variant="outline" class="w-full transition-colors duration-200">
+								Manage {section.title}
+							</Button>
+						</Card.Content>
+					</Card.Root>
+				{/each}
 			</div>
-		</Card.Content>
-	</Card.Root>
+
+			<!-- System Status -->
+			<Card.Root>
+				<Card.Header class="space-y-2">
+					<Card.Title class="text-lg">System Status</Card.Title>
+					<Card.Description class="text-sm">
+						Current system health and metrics
+					</Card.Description>
+				</Card.Header>
+				<Card.Content class="p-4">
+					<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+						{#each systemStatus as status}
+							<div class="flex items-center justify-between p-4 rounded-lg border">
+								<div class="flex items-center gap-3">
+									<div class="p-2 rounded-lg bg-green-100 dark:bg-green-900/20">
+										<status.icon class="h-5 w-5 text-green-600 dark:text-green-400" />
+									</div>
+									<div class="space-y-1">
+										<p class="text-sm font-medium">{status.label}</p>
+										<p class="text-sm text-muted-foreground">{status.value}</p>
+									</div>
+								</div>
+								<Badge variant="default" class="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+									Healthy
+								</Badge>
+							</div>
+						{/each}
+					</div>
+				</Card.Content>
+			</Card.Root>
+		{/if}
+	</div>
 </div>

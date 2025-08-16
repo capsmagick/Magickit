@@ -106,9 +106,9 @@
 				url: '/admin/notifications',
 				icon: BellIcon,
 				items: [
-					{ title: 'User Notifications', url: '/admin/notifications' },
-					{ title: 'System Alerts', url: '/admin/notifications' },
-					{ title: 'Email Templates', url: '/admin/notifications' }
+					{ title: 'User Notifications', url: '/admin/notifications/user' },
+					{ title: 'System Alerts', url: '/admin/notifications/system' },
+					{ title: 'Email Templates', url: '/admin/notifications/templates' }
 				]
 			},
 			{
