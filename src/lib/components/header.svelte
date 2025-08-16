@@ -19,6 +19,7 @@
 		signup: 'Sign Up',
 		'my-account': 'My Account',
 		about: 'About',
+		portfolio: 'Portfolio',
 		contact: 'Contact',
 		help: 'Help & Support'
 	};
@@ -60,6 +61,15 @@
 				</a>
 				<a href="/services" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
 					Services
+				</a>
+				<a href="/portfolio" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+					Portfolio
+				</a>
+				<a href="/blog" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+					Blog
+				</a>
+				<a href="/contact" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+					Contact
 				</a>
 			</nav>
 
@@ -112,6 +122,15 @@
 						</a>
 						<a href="/services" class="text-sm font-medium hover:text-primary transition-colors" onclick={() => mobileMenuOpen = false}>
 							Services
+						</a>
+						<a href="/portfolio" class="text-sm font-medium hover:text-primary transition-colors" onclick={() => mobileMenuOpen = false}>
+							Portfolio
+						</a>
+						<a href="/blog" class="text-sm font-medium hover:text-primary transition-colors" onclick={() => mobileMenuOpen = false}>
+							Blog
+						</a>
+						<a href="/contact" class="text-sm font-medium hover:text-primary transition-colors" onclick={() => mobileMenuOpen = false}>
+							Contact
 						</a>
 						{#if $session.data}
 							<div class="border-t pt-4 space-y-4">

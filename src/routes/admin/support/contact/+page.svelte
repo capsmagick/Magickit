@@ -2,7 +2,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import * as Table from '$lib/components/ui/table/index.js';
-	import * as Badge from '$lib/components/ui/badge/index.js';
+	import { Badge } from '$lib/components/ui/badge/index.js';
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { 
@@ -308,7 +308,17 @@
 								</Table.Cell>
 								<Table.Cell>
 									<Badge variant={getStatusVariant(submission.status)}>
-										<svelte:component this={getStatusIcon(submission.status)} class="mr-1 h-3 w-3" />
+										{#if submission.status === 'new'}
+											<Mail class="mr-1 h-3 w-3" />
+										{:else if submission.status === 'read'}
+											<MailOpen class="mr-1 h-3 w-3" />
+										{:else if submission.status === 'replied'}
+											<Reply class="mr-1 h-3 w-3" />
+										{:else if submission.status === 'closed'}
+											<Archive class="mr-1 h-3 w-3" />
+										{:else}
+											<Mail class="mr-1 h-3 w-3" />
+										{/if}
 										{submission.status}
 									</Badge>
 								</Table.Cell>
@@ -354,7 +364,17 @@
 		{#if selectedSubmission}
 			<Dialog.Header>
 				<Dialog.Title class="flex items-center gap-2">
-					<svelte:component this={getStatusIcon(selectedSubmission.status)} class="h-5 w-5" />
+					{#if selectedSubmission.status === 'new'}
+						<Mail class="h-5 w-5" />
+					{:else if selectedSubmission.status === 'read'}
+						<MailOpen class="h-5 w-5" />
+					{:else if selectedSubmission.status === 'replied'}
+						<Reply class="h-5 w-5" />
+					{:else if selectedSubmission.status === 'closed'}
+						<Archive class="h-5 w-5" />
+					{:else}
+						<Mail class="h-5 w-5" />
+					{/if}
 					Contact Submission Details
 				</Dialog.Title>
 				<Dialog.Description>
@@ -366,11 +386,11 @@
 				<!-- Contact Information -->
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div class="space-y-2">
-						<label class="text-sm font-medium">Name</label>
+						<h4 class="text-sm font-medium">Name</h4>
 						<p class="text-sm p-2 bg-muted rounded">{selectedSubmission.name}</p>
 					</div>
 					<div class="space-y-2">
-						<label class="text-sm font-medium">Email</label>
+						<h4 class="text-sm font-medium">Email</h4>
 						<p class="text-sm p-2 bg-muted rounded">
 							<a href="mailto:{selectedSubmission.email}" class="text-primary hover:underline">
 								{selectedSubmission.email}
@@ -381,13 +401,13 @@
 				
 				<!-- Subject -->
 				<div class="space-y-2">
-					<label class="text-sm font-medium">Subject</label>
+					<h4 class="text-sm font-medium">Subject</h4>
 					<p class="text-sm p-2 bg-muted rounded">{selectedSubmission.subject}</p>
 				</div>
 				
 				<!-- Message -->
 				<div class="space-y-2">
-					<label class="text-sm font-medium">Message</label>
+					<h4 class="text-sm font-medium">Message</h4>
 					<div class="p-4 bg-muted rounded-lg">
 						<p class="text-sm whitespace-pre-wrap leading-relaxed">{selectedSubmission.message}</p>
 					</div>
@@ -398,7 +418,17 @@
 					<div class="flex items-center gap-2">
 						<span class="text-sm font-medium">Status:</span>
 						<Badge variant={getStatusVariant(selectedSubmission.status)}>
-							<svelte:component this={getStatusIcon(selectedSubmission.status)} class="mr-1 h-3 w-3" />
+							{#if selectedSubmission.status === 'new'}
+								<Mail class="mr-1 h-3 w-3" />
+							{:else if selectedSubmission.status === 'read'}
+								<MailOpen class="mr-1 h-3 w-3" />
+							{:else if selectedSubmission.status === 'replied'}
+								<Reply class="mr-1 h-3 w-3" />
+							{:else if selectedSubmission.status === 'closed'}
+								<Archive class="mr-1 h-3 w-3" />
+							{:else}
+								<Mail class="mr-1 h-3 w-3" />
+							{/if}
 							{selectedSubmission.status}
 						</Badge>
 					</div>

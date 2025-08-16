@@ -148,9 +148,11 @@ This document outlines critical build quality standards and common error prevent
 <Select.Root bind:selected={selectedValue}>
 ```
 
-### ✅ REQUIRED: Replace <svelte:component> with Conditional Rendering
+### ✅ REQUIRED: Replace <svelte:component> with Conditional Rendering or {@const}
+**CRITICAL:** `<svelte:component>` is deprecated in Svelte 5 runes mode. Use conditional rendering or {@const} declarations.
+
 ```svelte
-<!-- ✅ CORRECT -->
+<!-- ✅ CORRECT - Conditional rendering -->
 {#if status === 'success'}
   <CheckCircle class="h-4 w-4 text-green-500" />
 {:else if status === 'error'}
@@ -158,6 +160,15 @@ This document outlines critical build quality standards and common error prevent
 {:else}
   <AlertTriangle class="h-4 w-4 text-yellow-500" />
 {/if}
+
+<!-- ✅ CORRECT - Using {@const} in valid context -->
+{#each items as item}
+  {@const IconComponent = getStatusIcon(item.status)}
+  <div class="flex items-center gap-2">
+    <IconComponent class="h-4 w-4" />
+    <span>{item.title}</span>
+  </div>
+{/each}
 
 <!-- ❌ INCORRECT - Deprecated in runes mode -->
 <svelte:component this={getStatusIcon(status)} class="h-4 w-4" />
@@ -226,6 +237,68 @@ bun run check
 <script lang="ts">
   import { Badge } from '$lib/components/ui/badge/index.js';
 </script>
+```
+
+### Error: "<svelte:component> is deprecated in runes mode"
+**Solution:** Replace with conditional rendering or {@const} declarations:
+
+```svelte
+<!-- Before - CAUSES BUILD WARNINGS -->
+<svelte:component this={getStatusIcon(status)} class="h-4 w-4" />
+
+<!-- After - FIXED with conditional rendering -->
+{#if status === 'active'}
+  <CheckCircle class="h-4 w-4" />
+{:else if status === 'inactive'}
+  <XCircle class="h-4 w-4" />
+{:else}
+  <AlertTriangle class="h-4 w-4" />
+{/if}
+
+<!-- After - FIXED with {@const} in valid context -->
+{#each items as item}
+  {@const IconComponent = getStatusIcon(item.status)}
+  <IconComponent class="h-4 w-4" />
+{/each}
+```
+
+### Error: "A form label must be associated with a control"
+**Solution:** Replace `<label>` with `<h4>` or proper form labels:
+
+```svelte
+<!-- Before - CAUSES ACCESSIBILITY WARNINGS -->
+<div class="space-y-2">
+  <label class="text-sm font-medium">Name</label>
+  <p class="text-sm p-2 bg-muted rounded">{user.name}</p>
+</div>
+
+<!-- After - FIXED -->
+<div class="space-y-2">
+  <h4 class="text-sm font-medium">Name</h4>
+  <p class="text-sm p-2 bg-muted rounded">{user.name}</p>
+</div>
+```
+
+### Error: "Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler"
+**Solution:** Replace clickable spans with buttons:
+
+```svelte
+<!-- Before - CAUSES ACCESSIBILITY WARNINGS -->
+<span 
+  class="cursor-pointer hover:text-primary transition-colors"
+  onclick={handleClick}
+>
+  Click me
+</span>
+
+<!-- After - FIXED -->
+<button 
+  type="button"
+  class="cursor-pointer hover:text-primary transition-colors bg-transparent border-none p-0 text-inherit font-inherit"
+  onclick={handleClick}
+>
+  Click me
+</button>
 ```
 
 ### Error: "Cannot use `{@render children(...)}` if the parent component uses `let:` directives"

@@ -263,14 +263,14 @@
     - Use consistent card spacing with p-6 for content areas
     - _Requirements: 2.2, 6.4_
 
-  - [-] 11.2 Create individual blog post page
+  - [x] 11.2 Create individual blog post page
     - Build dynamic blog post page with proper typography hierarchy
     - Implement reading time calculation and author information display
     - Add social sharing buttons with Lucide icons (h-4 w-4 sizing)
     - Use proper line-height (1.5x) for content readability
     - _Requirements: 2.2, 6.4_
 
-  - [ ] 11.3 Create portfolio showcase page
+  - [x] 11.3 Create portfolio showcase page
     - Build portfolio grid with project cards and image galleries
     - Implement project filtering by technology/category
     - Add modal/dialog for project details using shadcn-svelte Dialog

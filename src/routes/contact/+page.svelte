@@ -284,9 +284,10 @@
 				</Card.Header>
 				<Card.Content class="space-y-6">
 					{#each contactInfo as info}
+						{@const IconComponent = info.icon}
 						<div class="flex items-start gap-3">
 							<div class="flex-shrink-0 mt-1">
-								<svelte:component this={info.icon} class="h-4 w-4 text-primary" />
+								<IconComponent class="h-4 w-4 text-primary" />
 							</div>
 							<div class="space-y-1">
 								<p class="text-sm font-medium">{info.title}</p>
@@ -304,13 +305,14 @@
 				</Card.Header>
 				<Card.Content class="space-y-4">
 					{#each socialLinks as social}
+						{@const IconComponent = social.icon}
 						<a 
 							href={social.url}
 							target="_blank"
 							rel="noopener noreferrer"
 							class="flex items-center gap-3 p-3 rounded-lg border transition-colors duration-200 hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
 						>
-							<svelte:component this={social.icon} class="h-4 w-4 text-primary" />
+							<IconComponent class="h-4 w-4 text-primary" />
 							<div class="space-y-1">
 								<p class="text-sm font-medium">{social.name}</p>
 								<p class="text-sm text-muted-foreground">{social.handle}</p>
