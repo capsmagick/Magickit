@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
-	import * as Badge from '$lib/components/ui/badge/index.js';
+	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { authClient } from '$lib/auth/auth-client';
 	import { goto } from '$app/navigation';
 	import {

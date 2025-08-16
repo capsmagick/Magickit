@@ -127,9 +127,9 @@
 				url: '/admin/support',
 				icon: LifeBuoyIcon,
 				items: [
-					{ title: 'Support Tickets', url: '/admin/support' },
-					{ title: 'Knowledge Base', url: '/admin/support' },
-					{ title: 'Feedback', url: '/admin/support' }
+					{ title: 'Support Tickets', url: '/admin/support/tickets' },
+					{ title: 'Knowledge Base', url: '/admin/support/knowledge-base' },
+					{ title: 'Feedback', url: '/admin/support/feedback' }
 				]
 			}
 		],
