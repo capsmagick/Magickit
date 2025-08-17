@@ -1,0 +1,34 @@
+{
+  "timestamp": "2025-08-17T07:03:56.333Z",
+  "scores": {
+    "overall": 60
+  },
+  "issues": [
+    {
+      "message": "Image optimization analysis failed: require is not defined",
+      "severity": "error",
+      "timestamp": "2025-08-17T07:03:56.344Z"
+    },
+    {
+      "message": "Code splitting analysis failed: require is not defined",
+      "severity": "error",
+      "timestamp": "2025-08-17T07:03:56.346Z"
+    }
+  ],
+  "recommendations": [
+    "Consider implementing manual code splitting for large routes",
+    "Consider implementing a service worker for offline caching",
+    "Configure proper cache headers for static assets"
+  ],
+  "metrics": {
+    "dependencies": {
+      "totalDependencies": 26,
+      "heavyDependencies": [],
+      "devDependenciesInProd": []
+    },
+    "caching": {
+      "serviceWorker": false,
+      "cacheHeaders": false
+    }
+  }
+}
