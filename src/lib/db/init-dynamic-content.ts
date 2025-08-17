@@ -7,6 +7,8 @@ import type {
   SystemAlert,
   SystemMetrics 
 } from './models.js';
+import { initializeComponentCollections } from './collections/components.js';
+import { DEFAULT_COMPONENT_CATEGORIES } from './models/component.js';
 
 /**
  * Initialize dynamic content management system
@@ -27,6 +29,13 @@ export async function initializeDynamicContentSystem() {
     // Initialize system health monitoring
     await initializeSystemHealthMonitoring();
     console.log('✓ System health monitoring initialized');
+    
+    // Initialize component collections and categories
+    await initializeComponentCollections();
+    console.log('✓ Component collections initialized');
+    
+    await initializeDefaultComponentCategories();
+    console.log('✓ Default component categories initialized');
     
     console.log('Dynamic content management system initialization completed successfully');
   } catch (error) {
@@ -281,6 +290,69 @@ async function initializeDefaultContentTypes() {
         ],
         template: 'landing-page',
         isSystemType: true
+      },
+      {
+        name: 'Component',
+        slug: 'component',
+        description: 'Reusable UI component with metadata and versioning',
+        fields: [
+          {
+            _id: new ObjectId(),
+            name: 'title',
+            label: 'Component Name',
+            type: 'text',
+            required: true,
+            order: 1,
+            placeholder: 'Enter component name'
+          },
+          {
+            _id: new ObjectId(),
+            name: 'description',
+            label: 'Description',
+            type: 'textarea',
+            required: true,
+            order: 2,
+            placeholder: 'Describe what this component does'
+          },
+          {
+            _id: new ObjectId(),
+            name: 'content',
+            label: 'Component Content',
+            type: 'richtext',
+            required: true,
+            order: 3,
+            helpText: 'The main content/markup of the component'
+          },
+          {
+            _id: new ObjectId(),
+            name: 'props',
+            label: 'Component Props',
+            type: 'richtext',
+            required: false,
+            order: 4,
+            helpText: 'Documentation of component properties/parameters'
+          },
+          {
+            _id: new ObjectId(),
+            name: 'examples',
+            label: 'Usage Examples',
+            type: 'richtext',
+            required: false,
+            order: 5,
+            helpText: 'Code examples showing how to use this component'
+          },
+          {
+            _id: new ObjectId(),
+            name: 'previewImage',
+            label: 'Preview Image',
+            type: 'image',
+            required: false,
+            order: 6,
+            helpText: 'Screenshot or preview of the component'
+          }
+        ],
+        template: 'component',
+        isSystemType: true
       }
     ];
 
@@ -460,7 +532,12 @@ export async function verifyDynamicContentSetup() {
       'mediaFiles',
       'systemMetrics',
       'systemAlerts',
-      'systemHealthStatus'
+      'systemHealthStatus',
+      'componentUsage',
+      'componentVersions',
+      'componentCategories',
+      'componentPreviews',
+      'componentTemplates'
     ];
 
     const verificationResults = [];
@@ -492,6 +569,37 @@ export async function verifyDynamicContentSetup() {
 
   } catch (error) {
     console.error('Error verifying dynamic content setup:', error);
+    throw error;
+  }
+}
+
+/**
+ * Initialize default component categories
+ */
+async function initializeDefaultComponentCategories() {
+  try {
+    const componentCategoriesCollection = db.collection('componentCategories');
+
+    // Check if default categories already exist
+    const existingCategories = await componentCategoriesCollection.countDocuments({ isSystemCategory: true });
+    if (existingCategories > 0) {
+      console.log('Default component categories already exist, skipping initialization');
+      return;
+    }
+
+    const now = new Date();
+    const categoriesToInsert = DEFAULT_COMPONENT_CATEGORIES.map(category => ({
+      _id: new ObjectId(),
+      ...category,
+      createdAt: now,
+      updatedAt: now
+    }));
+
+    await componentCategoriesCollection.insertMany(categoriesToInsert);
+    console.log(`Inserted ${categoriesToInsert.length} default component categories`);
+
+  } catch (error) {
+    console.error('Error initializing default component categories:', error);
     throw error;
   }
 }
