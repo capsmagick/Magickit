@@ -1,5 +1,6 @@
 import { createIndexes } from './collections';
 import { RBACService } from './rbac';
+import { initializeDynamicContentSystem, verifyDynamicContentSetup } from './init-dynamic-content';
 
 /**
  * Initialize the database with indexes and default data
@@ -17,6 +18,10 @@ export async function initializeDatabase() {
     await RBACService.initializeRBAC();
     console.log('✓ RBAC system initialized');
     
+    // Initialize dynamic content management system
+    await initializeDynamicContentSystem();
+    console.log('✓ Dynamic content management system initialized');
+    
     console.log('Database initialization completed successfully');
   } catch (error) {
     console.error('Database initialization failed:', error);
@@ -30,6 +35,7 @@ export async function initializeDatabase() {
 export async function performHealthCheck() {
   try {
     const { checkDatabaseHealth, getCollectionStats } = await import('./collections');
+    const { verifyDynamicContentSetup } = await import('./init-dynamic-content');
     
     // Check database connection
     const healthStatus = await checkDatabaseHealth();
@@ -37,15 +43,20 @@ export async function performHealthCheck() {
     // Get collection statistics
     const stats = await getCollectionStats();
     
+    // Verify dynamic content setup
+    const dynamicContentStatus = await verifyDynamicContentSetup();
+    
     return {
       database: healthStatus,
       collections: stats,
+      dynamicContent: dynamicContentStatus,
       timestamp: new Date()
     };
   } catch (error) {
     return {
       database: { status: 'unhealthy', error: error instanceof Error ? error.message : 'Unknown error' },
       collections: [],
+      dynamicContent: [],
       timestamp: new Date()
     };
   }

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { ContactSubmission } from '$lib/db/models';
+import type { ContactSubmission } from '../models';
 
 // Contact form validation schema
 export const ContactFormSchema = z.object({

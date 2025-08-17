@@ -16,7 +16,11 @@
 		FileTextIcon,
 		PenToolIcon,
 		ImageIcon,
-		FolderIcon
+		FolderIcon,
+		ActivityIcon,
+		UploadIcon,
+		MonitorIcon,
+		LogsIcon
 	} from '@lucide/svelte';
 	import { authClient } from '$lib/auth/auth-client';
 	const session = authClient.useSession();
@@ -78,10 +82,31 @@
 				url: '/admin/content',
 				icon: FileTextIcon,
 				items: [
-					{ title: 'Blog Posts', url: '/admin/content/blog' },
-					{ title: 'Portfolio', url: '/admin/content/portfolio' },
-					{ title: 'Media Library', url: '/admin/content/media' },
-					{ title: 'Categories', url: '/admin/content/categories' }
+					{ title: 'Pages', url: '/admin/content/pages' },
+					{ title: 'Components', url: '/admin/content/components' },
+					{ title: 'Menus', url: '/admin/content/menus' },
+					{ title: 'Content Types', url: '/admin/content/types' }
+				]
+			},
+			{
+				title: 'Media Management',
+				url: '/admin/media',
+				icon: ImageIcon,
+				items: [
+					{ title: 'Media Library', url: '/admin/media' },
+					{ title: 'Upload Files', url: '/admin/media/upload' },
+					{ title: 'Organize Folders', url: '/admin/media/folders' }
+				]
+			},
+			{
+				title: 'System Health',
+				url: '/admin/system',
+				icon: ActivityIcon,
+				items: [
+					{ title: 'System Status', url: '/admin/system/status' },
+					{ title: 'Real-time Monitoring', url: '/admin/system/monitoring' },
+					{ title: 'System Logs', url: '/admin/system/logs' },
+					{ title: 'Performance Metrics', url: '/admin/system/performance' }
 				]
 			},
 			{
@@ -107,7 +132,6 @@
 					}
 				]
 			},
-
 			{
 				title: 'Notifications',
 				url: '/admin/notifications',
