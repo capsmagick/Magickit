@@ -16,6 +16,8 @@
 		X
 	} from '@lucide/svelte';
 	import type { PortfolioItem } from '$lib/db/models.js';
+	import SEO from '$lib/components/SEO.svelte';
+	import { generateProductSchema, generateBreadcrumbSchema } from '$lib/utils/seo';
 
 	interface Props {
 		data: {
@@ -100,12 +102,34 @@
 	function openExternalLink(url: string) {
 		window.open(url, '_blank', 'noopener,noreferrer');
 	}
+
+	// SEO and structured data
+	const seoData = {
+		title: 'Portfolio | MagicKit - Showcase of Projects',
+		description: 'Explore our portfolio of web development projects, applications, and creative work built with modern technologies like SvelteKit, TypeScript, and more.',
+		keywords: ['Portfolio', 'Web Development', 'Projects', 'SvelteKit', 'TypeScript', 'UI/UX Design'],
+		ogType: 'website' as const
+	};
+
+	const portfolioSchemas = data.featuredItems.map(item => generateProductSchema({
+		name: item.title,
+		description: item.description,
+		image: item.images[0],
+		url: `/portfolio#${item._id}`,
+		category: item.category,
+		technologies: item.technologies
+	}));
+
+	const breadcrumbSchema = generateBreadcrumbSchema([
+		{ name: 'Home', url: '/' },
+		{ name: 'Portfolio', url: '/portfolio' }
+	]);
 </script>
 
-<svelte:head>
-	<title>Portfolio | Magickit</title>
-	<meta name="description" content="Explore our portfolio of projects and work" />
-</svelte:head>
+<SEO 
+	{...seoData}
+	structuredData={[...portfolioSchemas, breadcrumbSchema]}
+/>
 
 <div class="container mx-auto px-4 py-8">
 	<div class="space-y-8">

@@ -20,6 +20,8 @@
 	import type { BlogPost } from '$lib/db/models.js';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
+	import SEO from '$lib/components/SEO.svelte';
+	import { generateArticleSchema, generateBreadcrumbSchema } from '$lib/utils/seo';
 
 	interface Props {
 		data: {
@@ -96,32 +98,42 @@
 	// Derived values
 	let readingTime = $derived(calculateReadingTime(data.post.content));
 	let publishDate = $derived(formatDate(data.post.publishedAt || data.post.createdAt));
+
+	// SEO and structured data
+	const seoData = {
+		title: `${data.post.title} | MagicKit Blog`,
+		description: data.post.excerpt,
+		keywords: data.post.tags,
+		ogType: 'article' as const,
+		twitterCard: 'summary_large_image' as const,
+		author: 'MagicKit Team',
+		publishedTime: (data.post.publishedAt || data.post.createdAt).toISOString(),
+		modifiedTime: data.post.updatedAt?.toISOString(),
+		section: 'Blog',
+		tags: data.post.tags
+	};
+
+	const articleSchema = generateArticleSchema({
+		title: data.post.title,
+		description: data.post.excerpt,
+		author: 'MagicKit Team',
+		publishedTime: (data.post.publishedAt || data.post.createdAt).toISOString(),
+		modifiedTime: data.post.updatedAt?.toISOString(),
+		url: $page.url.toString(),
+		tags: data.post.tags
+	});
+
+	const breadcrumbSchema = generateBreadcrumbSchema([
+		{ name: 'Home', url: '/' },
+		{ name: 'Blog', url: '/blog' },
+		{ name: data.post.title, url: $page.url.pathname }
+	]);
 </script>
 
-<svelte:head>
-	<title>{data.post.title} | Magickit Blog</title>
-	<meta name="description" content={data.post.excerpt} />
-	
-	<!-- Open Graph / Facebook -->
-	<meta property="og:type" content="article" />
-	<meta property="og:title" content={data.post.title} />
-	<meta property="og:description" content={data.post.excerpt} />
-	<meta property="og:url" content={$page.url.toString()} />
-	
-	<!-- Twitter -->
-	<meta name="twitter:card" content="summary_large_image" />
-	<meta name="twitter:title" content={data.post.title} />
-	<meta name="twitter:description" content={data.post.excerpt} />
-	
-	<!-- SEO -->
-	{#if data.post.seoTitle}
-		<meta name="title" content={data.post.seoTitle} />
-	{/if}
-	{#if data.post.seoDescription}
-		<meta name="description" content={data.post.seoDescription} />
-	{/if}
-	<link rel="canonical" href={$page.url.toString()} />
-</svelte:head>
+<SEO 
+	{...seoData}
+	structuredData={[articleSchema, breadcrumbSchema]}
+/>
 
 <div class="container mx-auto px-4 py-8">
 	<div class="max-w-4xl mx-auto space-y-8">

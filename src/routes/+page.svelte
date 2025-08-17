@@ -5,7 +5,9 @@
 	import * as Avatar from '$lib/components/ui/avatar/index.js';
 	import { authClient } from '$lib/auth/auth-client';
 	import { goto } from '$app/navigation';
-	import { Shield, Users, Palette, Zap, Lock, Code, Star, ArrowRight, CheckCircle } from '@lucide/svelte';
+	import { Shield, Users, Palette, Zap, Lock, Code, Star, ArrowRight } from '@lucide/svelte';
+	import SEO from '$lib/components/SEO.svelte';
+
 
 	const session = authClient.useSession();
 
@@ -81,7 +83,22 @@
 			description: 'Full TypeScript support for better development experience'
 		}
 	];
+
+	// SEO data for homepage
+	const seoData = {
+		title: 'MagicKit - Universal Web Application Template',
+		description: 'Build amazing web applications with our universal template featuring SvelteKit, Better Auth, TypeScript, and modern UI components. Perfect for SaaS, e-commerce, blogs, and more.',
+		keywords: ['SvelteKit', 'TypeScript', 'Web Template', 'Authentication', 'UI Components', 'Better Auth', 'shadcn-svelte', 'SaaS Template', 'Web Development'],
+		ogType: 'website' as const,
+		twitterCard: 'summary_large_image' as const
+	};
 </script>
+
+<SEO 
+	{...seoData}
+	includeOrganization={true}
+	includeWebSite={true}
+/>
 
 <div class="container mx-auto px-4 py-6">
 	<!-- Hero Section -->

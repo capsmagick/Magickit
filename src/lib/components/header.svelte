@@ -8,6 +8,7 @@
 	import { generateBreadcrumbs, shouldShowBreadcrumbs } from '$lib/utils/breadcrumb.js';
 	import { Menu } from '@lucide/svelte';
 	import { LightSwitch } from '$lib/components/ui/light-switch';
+	import { announceToScreenReader } from '$lib/utils/accessibility';
 
 	let mobileMenuOpen = $state(false);
 
@@ -49,26 +50,26 @@
 	}
 </script>
 
-<header class="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+<header id="navigation" class="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
 	<div class="container flex h-16 items-center justify-between px-4">
 		<div class="flex items-center space-x-4">
-			<a href="/" class="text-xl font-bold"> MagicKit </a>
+			<a href="/" class="text-xl font-bold" aria-label="MagicKit - Go to homepage"> MagicKit </a>
 
 			<!-- Navigation Links -->
-			<nav class="hidden md:flex items-center space-x-6 ml-6">
-				<a href="/about" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+			<nav class="hidden md:flex items-center space-x-6 ml-6" aria-label="Main navigation">
+				<a href="/about" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-sm px-2 py-1" aria-label="About MagicKit">
 					About
 				</a>
-				<a href="/services" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+				<a href="/services" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-sm px-2 py-1" aria-label="Our services">
 					Services
 				</a>
-				<a href="/portfolio" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+				<a href="/portfolio" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-sm px-2 py-1" aria-label="View our portfolio">
 					Portfolio
 				</a>
-				<a href="/blog" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+				<a href="/blog" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-sm px-2 py-1" aria-label="Read our blog">
 					Blog
 				</a>
-				<a href="/contact" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+				<a href="/contact" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-sm px-2 py-1" aria-label="Contact us">
 					Contact
 				</a>
 			</nav>

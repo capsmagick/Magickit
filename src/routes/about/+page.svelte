@@ -17,6 +17,8 @@
 		Mail,
 		ArrowRight
 	} from '@lucide/svelte';
+	import SEO from '$lib/components/SEO.svelte';
+	import { generateBreadcrumbSchema } from '$lib/utils/seo';
 
 	// Team members data
 	const teamMembers = [
@@ -108,12 +110,25 @@
 	function handleContact() {
 		goto('/contact');
 	}
+
+	// SEO and structured data
+	const seoData = {
+		title: 'About Us | MagicKit - Modern Web Application Template',
+		description: 'Learn about MagicKit, our mission to empower developers with modern web application templates, and meet our team. Built with SvelteKit, Better Auth, and TypeScript.',
+		keywords: ['About MagicKit', 'Web Development Team', 'SvelteKit Template', 'Company Mission', 'Development Tools'],
+		ogType: 'website' as const
+	};
+
+	const breadcrumbSchema = generateBreadcrumbSchema([
+		{ name: 'Home', url: '/' },
+		{ name: 'About', url: '/about' }
+	]);
 </script>
 
-<svelte:head>
-	<title>About Us | MagicKit</title>
-	<meta name="description" content="Learn about MagicKit, our mission to empower developers with modern web application templates, and meet our team." />
-</svelte:head>
+<SEO 
+	{...seoData}
+	structuredData={breadcrumbSchema}
+/>
 
 <div class="container mx-auto px-4 py-6">
 	<!-- Hero Section -->
