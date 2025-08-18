@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
 	import { Button } from '$lib/components/ui/button';
-	import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '$lib/components/ui/select';
+	import * as Select from '$lib/components/ui/select';
 	import { Badge } from '$lib/components/ui/badge';
 	import { TrendingUp, TrendingDown, Clock, Zap, Database, Server, RefreshCw } from '@lucide/svelte';
 
@@ -126,6 +126,18 @@
 		await new Promise(resolve => setTimeout(resolve, 1000));
 		isRefreshing = false;
 	}
+
+
+	const timeRangeOptions = [
+		{ value: '1h', label: 'Last 1 hour' },
+		{ value: '24h', label: 'Last 24 hours' },
+		{ value: '7d', label: 'Last 7 days' },
+		{ value: '30d', label: 'Last 30 days' }
+	];
+
+	const selectedTimeRangeLabel = $derived(
+		timeRangeOptions.find(option => option.value === timeRange)?.label ?? 'Select option'
+	);
 </script>
 
 <svelte:head>
@@ -139,17 +151,16 @@
 			<p class="text-muted-foreground">Monitor system performance and identify bottlenecks</p>
 		</div>
 		<div class="flex items-center gap-2">
-			<Select bind:value={timeRange}>
-				<SelectTrigger class="w-32">
-					<SelectValue />
-				</SelectTrigger>
-				<SelectContent>
-					<SelectItem value="1h">Last 1 hour</SelectItem>
-					<SelectItem value="24h">Last 24 hours</SelectItem>
-					<SelectItem value="7d">Last 7 days</SelectItem>
-					<SelectItem value="30d">Last 30 days</SelectItem>
-				</SelectContent>
-			</Select>
+			<Select.Root type="single" bind:value={timeRange}>
+				<Select.Trigger class="w-32">
+					{selectedTimeRangeLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each timeRangeOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 			<Button onclick={handleRefresh} disabled={isRefreshing} class="transition-colors duration-200">
 				<RefreshCw class="mr-2 h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
 				Refresh

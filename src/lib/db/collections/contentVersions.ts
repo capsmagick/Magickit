@@ -4,6 +4,13 @@ import type { ContentVersion } from '../models.js';
 
 const COLLECTION_NAME = 'contentVersions';
 
+// Internal type that uses ObjectId for database operations
+interface ContentVersionDocument extends Omit<ContentVersion, '_id' | 'contentInstanceId' | 'author'> {
+    _id: ObjectId;
+    contentInstanceId: string; // Keep as string since it references ContentInstance._id
+    author: string; // Keep as string since it references user ID
+}
+
 /**
  * Content Versions Collection Handler
  * Provides CRUD operations for content versions with proper error handling
@@ -13,15 +20,15 @@ export class ContentVersionsCollection {
      * Get all content versions with optional filtering and pagination
      */
     static async findAll(options: {
-        contentInstanceId?: ObjectId;
-        author?: ObjectId;
+        contentInstanceId?: string;
+        author?: string;
         limit?: number;
         skip?: number;
         sortBy?: 'version' | 'createdAt';
         sortOrder?: 'asc' | 'desc';
     } = {}) {
         try {
-            const collection = dbClient.collection<ContentVersion>(COLLECTION_NAME);
+            const collection = dbClient.collection<ContentVersionDocument>(COLLECTION_NAME);
 
             // Build filter
             const filter: any = {};
@@ -54,12 +61,20 @@ export class ContentVersionsCollection {
     /**
      * Get a single content version by ID
      */
-    static async findById(id: string | ObjectId) {
+    static async findById(id: string | ObjectId): Promise<ContentVersion | null> {
         try {
-            const collection = dbClient.collection<ContentVersion>(COLLECTION_NAME);
+            const collection = dbClient.collection<ContentVersionDocument>(COLLECTION_NAME);
 
             const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-            const version = await collection.findOne({ _id: objectId });
+            const document = await collection.findOne({ _id: objectId });
+
+            if (!document) return null;
+
+            // Convert ObjectId to string for client compatibility
+            const version: ContentVersion = {
+                ...document,
+                _id: document._id.toString()
+            };
 
             return version;
         } catch (error) {
@@ -71,15 +86,13 @@ export class ContentVersionsCollection {
     /**
      * Get versions for a specific content instance
      */
-    static async findByContentInstanceId(contentInstanceId: string | ObjectId, options: {
+    static async findByContentInstanceId(contentInstanceId: string, options: {
         limit?: number;
         skip?: number;
         sortOrder?: 'asc' | 'desc';
     } = {}) {
-        const objectId = typeof contentInstanceId === 'string' ? new ObjectId(contentInstanceId) : contentInstanceId;
-        
         return this.findAll({
-            contentInstanceId: objectId,
+            contentInstanceId,
             ...options,
             sortBy: 'version',
             sortOrder: options.sortOrder || 'desc'

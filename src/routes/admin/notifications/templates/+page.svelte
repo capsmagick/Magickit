@@ -440,6 +440,35 @@
 				return { variant: 'outline' as const, text: 'General' };
 		}
 	}
+
+
+	const categoryFilterOptions = [
+		{ value: 'all', label: 'All Categories' },
+		{ value: 'general', label: 'General' },
+		{ value: 'onboarding', label: 'Onboarding' },
+		{ value: 'security', label: 'Security' },
+		{ value: 'marketing', label: 'Marketing' },
+		{ value: 'notification', label: 'Notification' },
+		{ value: 'transactional', label: 'Transactional' }
+	];
+
+	const selectedCategoryFilterLabel = $derived(
+		categoryFilterOptions.find(option => option.value === categoryFilter)?.label ?? 'Category'
+	);
+
+	const templateFormCategoryOptions = [
+		{ value: 'all', label: 'All Categories' },
+		{ value: 'general', label: 'General' },
+		{ value: 'onboarding', label: 'Onboarding' },
+		{ value: 'security', label: 'Security' },
+		{ value: 'marketing', label: 'Marketing' },
+		{ value: 'notification', label: 'Notification' },
+		{ value: 'transactional', label: 'Transactional' }
+	];
+
+	const selectedTemplateFormCategoryLabel = $derived(
+		templateFormCategoryOptions.find(option => option.value === templateForm.category)?.label ?? 'Select category'
+	);
 </script>
 
 <div class="space-y-6">
@@ -499,20 +528,16 @@
 					</div>
 				</div>
 				<div class="flex gap-2">
-					<Select.Root bind:selected={categoryFilter}>
-						<Select.Trigger class="w-40">
-							<Select.Value placeholder="Category" />
-						</Select.Trigger>
-						<Select.Content>
-							<Select.Item value="all">All Categories</Select.Item>
-							<Select.Item value="onboarding">Onboarding</Select.Item>
-							<Select.Item value="security">Security</Select.Item>
-							<Select.Item value="marketing">Marketing</Select.Item>
-							<Select.Item value="notification">Notification</Select.Item>
-							<Select.Item value="transactional">Transactional</Select.Item>
-							<Select.Item value="general">General</Select.Item>
-						</Select.Content>
-					</Select.Root>
+					<Select.Root type="single" bind:value={categoryFilter}>
+				<Select.Trigger class="w-32">
+					{selectedCategoryFilterLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each categoryFilterOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 					<Button variant="outline" onclick={() => {
 						searchTerm = '';
 						categoryFilter = 'all';
@@ -698,19 +723,16 @@
 					</div>
 					<div class="space-y-2">
 						<Label for="category">Category</Label>
-						<Select.Root bind:selected={templateForm.category}>
-							<Select.Trigger>
-								<Select.Value placeholder="Select category" />
-							</Select.Trigger>
-							<Select.Content>
-								<Select.Item value="onboarding">Onboarding</Select.Item>
-								<Select.Item value="security">Security</Select.Item>
-								<Select.Item value="marketing">Marketing</Select.Item>
-								<Select.Item value="notification">Notification</Select.Item>
-								<Select.Item value="transactional">Transactional</Select.Item>
-								<Select.Item value="general">General</Select.Item>
-							</Select.Content>
-						</Select.Root>
+						<Select.Root type="single" bind:value={templateForm.category}>
+				<Select.Trigger class="w-32">
+					{selectedTemplateFormCategoryLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each templateFormCategoryOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 					</div>
 				</div>
 

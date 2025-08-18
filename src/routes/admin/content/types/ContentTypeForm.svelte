@@ -282,7 +282,8 @@
 										<GripVertical class="h-4 w-4 text-muted-foreground cursor-move" />
 										<Badge variant="outline" class="gap-1">
 											{#if fieldTypeIcons[field.type]}
-												<svelte:component this={fieldTypeIcons[field.type]} class="h-3 w-3" />
+												{@const IconComponent = fieldTypeIcons[field.type]}
+												<IconComponent class="h-3 w-3" />
 											{/if}
 											{CONTENT_FIELD_TYPES[field.type] || field.type}
 										</Badge>

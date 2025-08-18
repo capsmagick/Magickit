@@ -5,13 +5,7 @@
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import * as Table from '$lib/components/ui/table/index.js';
-	import {
-		Select,
-		SelectContent,
-		SelectItem,
-		SelectTrigger,
-		SelectValue
-	} from '$lib/components/ui/select/index.js';
+	import * as Select from "$lib/components/ui/select";
 	import {
 		Dialog,
 		DialogContent,
@@ -39,20 +33,21 @@
 		Eye,
 		Edit
 	} from '@lucide/svelte';
+	import type { SupportTicket } from '$lib/types/index.js';
 
 	let hasCheckedAuth = $state(false);
 	let showCreateDialog = $state(false);
 	let showReplyDialog = $state(false);
-	let selectedTicket: any = $state(null);
+	let selectedTicket: SupportTicket | null = $state(null);
 	let searchTerm = $state('');
-	let statusFilter = $state('all');
-	let priorityFilter = $state('all');
+	let statusFilter = $state<string>('all');
+	let priorityFilter = $state<string>('all');
 	let isLoading = $state(false);
 
 	const session = authClient.useSession();
 
 	// Mock data for demonstration
-	let supportTickets = $state([
+	let supportTickets = $state<SupportTicket[]>([
 		{
 			id: 'TKT-001',
 			title: 'Cannot access admin panel',
@@ -138,7 +133,7 @@
 		title: '',
 		description: '',
 		category: 'technical',
-		priority: 'medium'
+		priority: 'medium' as 'low' | 'medium' | 'high' | 'urgent'
 	});
 
 	let newReply = $state({
@@ -279,6 +274,57 @@
 		statusFilter = 'all';
 		priorityFilter = 'all';
 	}
+
+
+	const newTicketCategoryOptions = [
+		{ value: 'all', label: 'All Categories' },
+		{ value: 'general', label: 'General' },
+		{ value: 'technical', label: 'Technical' },
+		{ value: 'billing', label: 'Billing' },
+		{ value: 'authentication', label: 'Authentication' },
+		{ value: 'feature-request', label: 'Feature Request' },
+		{ value: 'bug-report', label: 'Bug Report' }
+	];
+
+	const selectedNewTicketCategoryLabel = $derived(
+		newTicketCategoryOptions.find(option => option.value === newTicket.category)?.label ?? 'Select option'
+	);
+
+	const newTicketPriorityOptions = [
+		{ value: 'all', label: 'All Priority' },
+		{ value: 'low', label: 'Low' },
+		{ value: 'medium', label: 'Medium' },
+		{ value: 'high', label: 'High' },
+		{ value: 'urgent', label: 'Urgent' }
+	];
+
+	const selectedNewTicketPriorityLabel = $derived(
+		newTicketPriorityOptions.find(option => option.value === newTicket.priority)?.label ?? 'Select option'
+	);
+
+	const statusFilterOptions = [
+		{ value: 'all', label: 'All Status' },
+		{ value: 'open', label: 'Open' },
+		{ value: 'closed', label: 'Closed' },
+		{ value: 'resolved', label: 'Resolved' },
+		{ value: 'in_progress', label: 'In Progress' }
+	];
+
+	const selectedStatusFilterLabel = $derived(
+		statusFilterOptions.find(option => option.value === statusFilter)?.label ?? 'Status'
+	);
+
+	const priorityFilterOptions = [
+		{ value: 'all', label: 'All Priority' },
+		{ value: 'low', label: 'Low' },
+		{ value: 'medium', label: 'Medium' },
+		{ value: 'high', label: 'High' },
+		{ value: 'urgent', label: 'Urgent' }
+	];
+
+	const selectedPriorityFilterLabel = $derived(
+		priorityFilterOptions.find(option => option.value === priorityFilter)?.label ?? 'Priority'
+	);
 </script>
 
 <div class="space-y-6">
@@ -330,33 +376,29 @@
 					</div>
 					<div class="space-y-2">
 						<Label for="ticketCategory">Category</Label>
-						<Select bind:value={newTicket.category}>
-							<SelectTrigger>
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="technical">Technical</SelectItem>
-								<SelectItem value="billing">Billing</SelectItem>
-								<SelectItem value="feature-request">Feature Request</SelectItem>
-								<SelectItem value="bug-report">Bug Report</SelectItem>
-								<SelectItem value="authentication">Authentication</SelectItem>
-								<SelectItem value="general">General</SelectItem>
-							</SelectContent>
-						</Select>
+						<Select.Root type="single" bind:value={newTicket.category}>
+				<Select.Trigger class="w-32">
+					{selectedNewTicketCategoryLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each newTicketCategoryOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 					</div>
 					<div class="space-y-2">
 						<Label for="ticketPriority">Priority</Label>
-						<Select bind:value={newTicket.priority}>
-							<SelectTrigger>
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="low">Low</SelectItem>
-								<SelectItem value="medium">Medium</SelectItem>
-								<SelectItem value="high">High</SelectItem>
-								<SelectItem value="urgent">Urgent</SelectItem>
-							</SelectContent>
-						</Select>
+						<Select.Root type="single" bind:value={newTicket.priority}>
+				<Select.Trigger class="w-32">
+					{selectedNewTicketPriorityLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each newTicketPriorityOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 					</div>
 					<DialogFooter>
 						<Button type="button" variant="outline" onclick={() => (showCreateDialog = false)}>
@@ -388,30 +430,26 @@
 					</div>
 				</div>
 				<div class="flex gap-2">
-					<Select bind:value={statusFilter}>
-						<SelectTrigger class="w-32">
-							<SelectValue placeholder="Status" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="all">All Status</SelectItem>
-							<SelectItem value="open">Open</SelectItem>
-							<SelectItem value="in_progress">In Progress</SelectItem>
-							<SelectItem value="resolved">Resolved</SelectItem>
-							<SelectItem value="closed">Closed</SelectItem>
-						</SelectContent>
-					</Select>
-					<Select bind:value={priorityFilter}>
-						<SelectTrigger class="w-32">
-							<SelectValue placeholder="Priority" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="all">All Priority</SelectItem>
-							<SelectItem value="urgent">Urgent</SelectItem>
-							<SelectItem value="high">High</SelectItem>
-							<SelectItem value="medium">Medium</SelectItem>
-							<SelectItem value="low">Low</SelectItem>
-						</SelectContent>
-					</Select>
+					<Select.Root type="single" bind:value={statusFilter}>
+				<Select.Trigger class="w-32">
+					{selectedStatusFilterLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each statusFilterOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
+					<Select.Root type="single" bind:value={priorityFilter}>
+				<Select.Trigger class="w-32">
+					{selectedPriorityFilterLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each priorityFilterOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 					<Button variant="outline" onclick={resetFilters} class="transition-colors duration-200">
 						Reset
 					</Button>
@@ -462,7 +500,7 @@
 						</Table.Row>
 					</Table.Header>
 					<Table.Body>
-						{#each filteredTickets as ticket}
+						{#each filteredTickets() as ticket}
 							<Table.Row class="transition-colors duration-200 hover:bg-muted/50">
 								<Table.Cell>
 									<div class="space-y-1">
@@ -517,20 +555,20 @@
 										>
 											<MessageCircle class="h-4 w-4" />
 										</Button>
-										<Select
+										<Select.Root
 											value={ticket.status}
-											onValueChange={(value) => value && updateTicketStatus(ticket.id, value)}
+											onValueChange={(value: string) => value && updateTicketStatus(ticket.id, value)}
 										>
-											<SelectTrigger class="w-32">
-												<SelectValue />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectItem value="open">Open</SelectItem>
-												<SelectItem value="in_progress">In Progress</SelectItem>
-												<SelectItem value="resolved">Resolved</SelectItem>
-												<SelectItem value="closed">Closed</SelectItem>
-											</SelectContent>
-										</Select>
+											<Select.Trigger class="w-32">
+												<Select.Value />
+											</Select.Trigger>
+											<Select.Content>
+												<Select.Item value="open">Open</Select.Item>
+												<Select.Item value="in_progress">In Progress</Select.Item>
+												<Select.Item value="resolved">Resolved</Select.Item>
+												<Select.Item value="closed">Closed</Select.Item>
+											</Select.Content>
+										</Select.Root>
 										<Button
 											variant="ghost"
 											size="icon"

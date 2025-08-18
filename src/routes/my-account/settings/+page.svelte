@@ -117,6 +117,19 @@
 		{ value: 'private', label: 'Private', description: 'Only you can view your profile' },
 		{ value: 'friends', label: 'Friends Only', description: 'Only your connections can view' }
 	];
+
+	// Derived values for Select components
+	const selectedLanguageLabel = $derived(
+		languageOptions.find(option => option.value === settings.preferences.language)?.label ?? 'Select language'
+	);
+
+	const selectedTimezoneLabel = $derived(
+		timezoneOptions.find(option => option.value === settings.preferences.timezone)?.label ?? 'Select timezone'
+	);
+
+	const selectedDateFormatLabel = $derived(
+		dateFormatOptions.find(option => option.value === settings.preferences.dateFormat)?.label ?? 'Select date format'
+	);
 </script>
 
 <div class="container mx-auto max-w-4xl px-4 py-6">
@@ -220,9 +233,9 @@
 				<Card.Content class="p-4 space-y-6">
 					<div class="space-y-2">
 						<Label class="text-sm font-medium">Language</Label>
-						<Select.Root bind:value={settings.preferences.language}>
+						<Select.Root type="single" bind:value={settings.preferences.language}>
 							<Select.Trigger class="transition-colors duration-200">
-								<Select.Value placeholder="Select language" />
+								{selectedLanguageLabel}
 							</Select.Trigger>
 							<Select.Content>
 								{#each languageOptions as option}
@@ -234,9 +247,9 @@
 
 					<div class="space-y-2">
 						<Label class="text-sm font-medium">Timezone</Label>
-						<Select.Root bind:value={settings.preferences.timezone}>
+						<Select.Root type="single" bind:value={settings.preferences.timezone}>
 							<Select.Trigger class="transition-colors duration-200">
-								<Select.Value placeholder="Select timezone" />
+								{selectedTimezoneLabel}
 							</Select.Trigger>
 							<Select.Content>
 								{#each timezoneOptions as option}
@@ -248,9 +261,9 @@
 
 					<div class="space-y-2">
 						<Label class="text-sm font-medium">Date Format</Label>
-						<Select.Root bind:value={settings.preferences.dateFormat}>
+						<Select.Root type="single" bind:value={settings.preferences.dateFormat}>
 							<Select.Trigger class="transition-colors duration-200">
-								<Select.Value placeholder="Select date format" />
+								{selectedDateFormatLabel}
 							</Select.Trigger>
 							<Select.Content>
 								{#each dateFormatOptions as option}

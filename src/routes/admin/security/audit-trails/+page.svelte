@@ -354,6 +354,75 @@
 			word.charAt(0).toUpperCase() + word.slice(1)
 		).join(' ');
 	}
+
+
+	const filtersDateRangeOptions = [
+		{ value: 'today', label: 'Today' },
+		{ value: 'last_7_days', label: 'Last 7 days' },
+		{ value: 'last_30_days', label: 'Last 30 days' },
+		{ value: 'last_90_days', label: 'Last 90 days' },
+		{ value: 'custom', label: 'Custom range' }
+	];
+
+	const selectedFiltersDateRangeLabel = $derived(
+		filtersDateRangeOptions.find(option => option.value === filters.dateRange)?.label ?? 'Select date range'
+	);
+
+	const filtersActionOptions = [
+		{ value: 'all', label: 'All actions' }
+	];
+
+	const selectedFiltersActionLabel = $derived(
+		filtersActionOptions.find(option => option.value === filters.action)?.label ?? 'All actions'
+	);
+
+	const filtersResourceOptions = [
+		{ value: 'all', label: 'All resources' }
+	];
+
+	const selectedFiltersResourceLabel = $derived(
+		filtersResourceOptions.find(option => option.value === filters.resource)?.label ?? 'All resources'
+	);
+
+	const filtersSuccessOptions = [
+		{ value: 'all', label: 'All statuses' },
+		{ value: 'success', label: 'Success only' },
+		{ value: 'failed', label: 'Failed only' }
+	];
+
+	const selectedFiltersSuccessLabel = $derived(
+		filtersSuccessOptions.find(option => option.value === filters.success)?.label ?? 'All statuses'
+	);
+
+	const exportOptionsFormatOptions = [
+		{ value: 'csv', label: 'CSV' },
+		{ value: 'json', label: 'JSON' },
+		{ value: 'xlsx', label: 'Excel (XLSX)' }
+	];
+
+	const selectedExportOptionsFormatLabel = $derived(
+		exportOptionsFormatOptions.find(option => option.value === exportOptions.format)?.label ?? 'Select option'
+	);
+
+	const exportOptionsDateRangeOptions = $derived([
+		{ value: 'filtered', label: `Current filtered results (${filteredLogs.length} records)` },
+		{ value: 'all', label: `All audit logs (${auditLogs.length} records)` },
+		{ value: 'custom', label: 'Custom date range' }
+	]);
+
+	const selectedExportOptionsDateRangeLabel = $derived(
+		exportOptionsDateRangeOptions.find(option => option.value === exportOptions.dateRange)?.label ?? 'Select option'
+	);
+
+	const auditSettingsLogLevelOptions = [
+		{ value: 'basic', label: 'Basic - Essential events only' },
+		{ value: 'detailed', label: 'Detailed - Most events with context' },
+		{ value: 'verbose', label: 'Verbose - All events with full details' }
+	];
+
+	const selectedAuditSettingsLogLevelLabel = $derived(
+		auditSettingsLogLevelOptions.find(option => option.value === auditSettings.logLevel)?.label ?? 'Select option'
+	);
 </script>
 
 <div class="space-y-6">
@@ -644,18 +713,16 @@
 			<!-- Date Range -->
 			<div class="space-y-3">
 				<Label>Date Range</Label>
-				<Select.Root bind:value={filters.dateRange}>
-					<Select.Trigger>
-						<Select.Value placeholder="Select date range" />
-					</Select.Trigger>
-					<Select.Content>
-						<Select.Item value="today">Today</Select.Item>
-						<Select.Item value="last_7_days">Last 7 days</Select.Item>
-						<Select.Item value="last_30_days">Last 30 days</Select.Item>
-						<Select.Item value="last_90_days">Last 90 days</Select.Item>
-						<Select.Item value="custom">Custom range</Select.Item>
-					</Select.Content>
-				</Select.Root>
+				<Select.Root type="single" bind:value={filters.dateRange}>
+				<Select.Trigger class="w-32">
+					{selectedFiltersDateRangeLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each filtersDateRangeOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 				
 				{#if filters.dateRange === 'custom'}
 					<div class="grid grid-cols-2 gap-2">
@@ -682,48 +749,46 @@
 			<!-- Action Filter -->
 			<div class="space-y-2">
 				<Label>Action</Label>
-				<Select.Root bind:value={filters.action}>
-					<Select.Trigger>
-						<Select.Value placeholder="All actions" />
-					</Select.Trigger>
-					<Select.Content>
-						<Select.Item value="all">All actions</Select.Item>
-						{#each availableActions as action}
-							<Select.Item value={action}>{formatActionName(action)}</Select.Item>
-						{/each}
-					</Select.Content>
-				</Select.Root>
+				<Select.Root type="single" bind:value={filters.action}>
+				<Select.Trigger class="w-32">
+					{selectedFiltersActionLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each filtersActionOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 			</div>
 
 			<!-- Resource Filter -->
 			<div class="space-y-2">
 				<Label>Resource</Label>
-				<Select.Root bind:value={filters.resource}>
-					<Select.Trigger>
-						<Select.Value placeholder="All resources" />
-					</Select.Trigger>
-					<Select.Content>
-						<Select.Item value="all">All resources</Select.Item>
-						{#each availableResources as resource}
-							<Select.Item value={resource}>{formatResourceName(resource)}</Select.Item>
-						{/each}
-					</Select.Content>
-				</Select.Root>
+				<Select.Root type="single" bind:value={filters.resource}>
+				<Select.Trigger class="w-32">
+					{selectedFiltersResourceLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each filtersResourceOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 			</div>
 
 			<!-- Success Filter -->
 			<div class="space-y-2">
 				<Label>Status</Label>
-				<Select.Root bind:value={filters.success}>
-					<Select.Trigger>
-						<Select.Value placeholder="All statuses" />
-					</Select.Trigger>
-					<Select.Content>
-						<Select.Item value="all">All statuses</Select.Item>
-						<Select.Item value="success">Success only</Select.Item>
-						<Select.Item value="failed">Failed only</Select.Item>
-					</Select.Content>
-				</Select.Root>
+				<Select.Root type="single" bind:value={filters.success}>
+				<Select.Trigger class="w-32">
+					{selectedFiltersSuccessLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each filtersSuccessOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 			</div>
 
 			<!-- User Filter -->
@@ -853,30 +918,30 @@
 		<div class="space-y-4">
 			<div class="space-y-2">
 				<Label>Export Format</Label>
-				<Select.Root bind:value={exportOptions.format}>
-					<Select.Trigger>
-						<Select.Value />
-					</Select.Trigger>
-					<Select.Content>
-						<Select.Item value="csv">CSV</Select.Item>
-						<Select.Item value="json">JSON</Select.Item>
-						<Select.Item value="xlsx">Excel (XLSX)</Select.Item>
-					</Select.Content>
-				</Select.Root>
+				<Select.Root type="single" bind:value={exportOptions.format}>
+				<Select.Trigger class="w-32">
+					{selectedExportOptionsFormatLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each exportOptionsFormatOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 			</div>
 
 			<div class="space-y-2">
 				<Label>Data Range</Label>
-				<Select.Root bind:value={exportOptions.dateRange}>
-					<Select.Trigger>
-						<Select.Value />
-					</Select.Trigger>
-					<Select.Content>
-						<Select.Item value="filtered">Current filtered results ({filteredLogs.length} records)</Select.Item>
-						<Select.Item value="all">All audit logs ({auditLogs.length} records)</Select.Item>
-						<Select.Item value="custom">Custom date range</Select.Item>
-					</Select.Content>
-				</Select.Root>
+				<Select.Root type="single" bind:value={exportOptions.dateRange}>
+				<Select.Trigger class="w-32">
+					{selectedExportOptionsDateRangeLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each exportOptionsDateRangeOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 			</div>
 
 			{#if exportOptions.dateRange === 'custom'}
@@ -988,16 +1053,16 @@
 				<div class="space-y-3">
 					<div>
 						<Label>Log Level</Label>
-						<Select.Root bind:value={auditSettings.logLevel}>
-							<Select.Trigger>
-								<Select.Value />
-							</Select.Trigger>
-							<Select.Content>
-								<Select.Item value="basic">Basic - Essential events only</Select.Item>
-								<Select.Item value="detailed">Detailed - Most events with context</Select.Item>
-								<Select.Item value="verbose">Verbose - All events with full details</Select.Item>
-							</Select.Content>
-						</Select.Root>
+						<Select.Root type="single" bind:value={auditSettings.logLevel}>
+				<Select.Trigger class="w-32">
+					{selectedAuditSettingsLogLevelLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each auditSettingsLogLevelOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 					</div>
 					<div class="flex items-center justify-between">
 						<div>

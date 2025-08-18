@@ -2,6 +2,16 @@ import { ObjectId } from 'mongodb';
 import dbClient from '../dbClient.js';
 import type { ContentType, ContentField } from '../models.js';
 
+// Internal type that uses ObjectId for database operations
+interface ContentTypeDocument extends Omit<ContentType, '_id' | 'fields'> {
+    _id: ObjectId;
+    fields: ContentFieldDocument[];
+}
+
+interface ContentFieldDocument extends Omit<ContentField, '_id'> {
+    _id: ObjectId;
+}
+
 const COLLECTION_NAME = 'contentTypes';
 
 /**
@@ -20,7 +30,7 @@ export class ContentTypesCollection {
         sortOrder?: 'asc' | 'desc';
     } = {}) {
         try {
-            const collection = dbClient.collection<ContentType>(COLLECTION_NAME);
+            const collection = dbClient.collection<ContentTypeDocument>(COLLECTION_NAME);
 
             // Build filter
             const filter: any = {};
@@ -39,8 +49,18 @@ export class ContentTypesCollection {
             if (options.skip) cursor.skip(options.skip);
             if (options.limit) cursor.limit(options.limit);
 
-            const contentTypes = await cursor.toArray();
+            const documents = await cursor.toArray();
             const total = await collection.countDocuments(filter);
+
+            // Convert ObjectId to string for client compatibility
+            const contentTypes: ContentType[] = documents.map(doc => ({
+                ...doc,
+                _id: doc._id.toString(),
+                fields: doc.fields.map(field => ({
+                    ...field,
+                    _id: field._id.toString()
+                }))
+            }));
 
             return { contentTypes, total };
         } catch (error) {
@@ -52,12 +72,24 @@ export class ContentTypesCollection {
     /**
      * Get a single content type by ID
      */
-    static async findById(id: string | ObjectId) {
+    static async findById(id: string | ObjectId): Promise<ContentType | null> {
         try {
-            const collection = dbClient.collection<ContentType>(COLLECTION_NAME);
+            const collection = dbClient.collection<ContentTypeDocument>(COLLECTION_NAME);
 
             const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-            const contentType = await collection.findOne({ _id: objectId });
+            const document = await collection.findOne({ _id: objectId });
+
+            if (!document) return null;
+
+            // Convert ObjectId to string for client compatibility
+            const contentType: ContentType = {
+                ...document,
+                _id: document._id.toString(),
+                fields: document.fields.map(field => ({
+                    ...field,
+                    _id: field._id.toString()
+                }))
+            };
 
             return contentType;
         } catch (error) {
@@ -69,11 +101,24 @@ export class ContentTypesCollection {
     /**
      * Get a single content type by slug
      */
-    static async findBySlug(slug: string) {
+    static async findBySlug(slug: string): Promise<ContentType | null> {
         try {
-            const collection = dbClient.collection<ContentType>(COLLECTION_NAME);
+            const collection = dbClient.collection<ContentTypeDocument>(COLLECTION_NAME);
 
-            const contentType = await collection.findOne({ slug });
+            const document = await collection.findOne({ slug });
+            
+            if (!document) return null;
+
+            // Convert ObjectId to string for client compatibility
+            const contentType: ContentType = {
+                ...document,
+                _id: document._id.toString(),
+                fields: document.fields.map(field => ({
+                    ...field,
+                    _id: field._id.toString()
+                }))
+            };
+
             return contentType;
         } catch (error) {
             console.error('Error fetching content type by slug:', error);
@@ -84,9 +129,9 @@ export class ContentTypesCollection {
     /**
      * Create a new content type
      */
-    static async create(contentTypeData: Omit<ContentType, '_id' | 'createdAt' | 'updatedAt'>) {
+    static async create(contentTypeData: Omit<ContentType, '_id' | 'createdAt' | 'updatedAt'>): Promise<ContentType> {
         try {
-            const collection = dbClient.collection<ContentType>(COLLECTION_NAME);
+            const collection = dbClient.collection<ContentTypeDocument>(COLLECTION_NAME);
 
             // Check if slug already exists
             const existingContentType = await collection.findOne({ slug: contentTypeData.slug });
@@ -95,14 +140,14 @@ export class ContentTypesCollection {
             }
 
             // Assign IDs to fields
-            const fieldsWithIds = contentTypeData.fields.map((field, index) => ({
+            const fieldsWithIds: ContentFieldDocument[] = contentTypeData.fields.map((field, index) => ({
                 ...field,
                 _id: new ObjectId(),
                 order: field.order ?? index
             }));
 
             const now = new Date();
-            const newContentType: ContentType = {
+            const newContentTypeDocument: ContentTypeDocument = {
                 _id: new ObjectId(),
                 ...contentTypeData,
                 fields: fieldsWithIds,
@@ -110,11 +155,21 @@ export class ContentTypesCollection {
                 updatedAt: now
             };
 
-            const result = await collection.insertOne(newContentType);
+            const result = await collection.insertOne(newContentTypeDocument);
             
             if (!result.acknowledged) {
                 throw new Error('Failed to create content type');
             }
+
+            // Convert back to client format
+            const newContentType: ContentType = {
+                ...newContentTypeDocument,
+                _id: newContentTypeDocument._id.toString(),
+                fields: newContentTypeDocument.fields.map(field => ({
+                    ...field,
+                    _id: field._id.toString()
+                }))
+            };
 
             return newContentType;
         } catch (error) {
@@ -129,9 +184,9 @@ export class ContentTypesCollection {
     /**
      * Update an existing content type
      */
-    static async update(id: string | ObjectId, updateData: Partial<Omit<ContentType, '_id' | 'createdAt'>>) {
+    static async update(id: string | ObjectId, updateData: Partial<Omit<ContentType, '_id' | 'createdAt'>>): Promise<ContentType | null> {
         try {
-            const collection = dbClient.collection<ContentType>(COLLECTION_NAME);
+            const collection = dbClient.collection<ContentTypeDocument>(COLLECTION_NAME);
 
             const objectId = typeof id === 'string' ? new ObjectId(id) : id;
 
@@ -146,30 +201,46 @@ export class ContentTypesCollection {
                 }
             }
 
-            // If updating fields, ensure they have IDs
+            // If updating fields, ensure they have IDs and convert to ObjectId
+            let fieldsUpdate: ContentFieldDocument[] | undefined;
             if (updateData.fields) {
-                updateData.fields = updateData.fields.map((field, index) => ({
+                fieldsUpdate = updateData.fields.map((field, index) => ({
                     ...field,
-                    _id: field._id || new ObjectId(),
+                    _id: field._id ? new ObjectId(field._id) : new ObjectId(),
                     order: field.order ?? index
                 }));
             }
 
-            const result = await collection.updateOne(
+            const updateDoc: any = {
+                ...updateData,
+                updatedAt: new Date()
+            };
+
+            if (fieldsUpdate) {
+                updateDoc.fields = fieldsUpdate;
+            }
+
+            const result = await collection.findOneAndUpdate(
                 { _id: objectId },
-                { 
-                    $set: { 
-                        ...updateData, 
-                        updatedAt: new Date() 
-                    } 
-                }
+                { $set: updateDoc },
+                { returnDocument: 'after' }
             );
 
-            if (result.matchedCount === 0) {
+            if (!result) {
                 throw new Error('Content type not found');
             }
 
-            return await this.findById(objectId);
+            // Convert back to client format
+            const updatedContentType: ContentType = {
+                ...result,
+                _id: result._id.toString(),
+                fields: result.fields.map(field => ({
+                    ...field,
+                    _id: field._id.toString()
+                }))
+            };
+
+            return updatedContentType;
         } catch (error) {
             console.error('Error updating content type:', error);
             if (error instanceof Error) {
@@ -182,16 +253,17 @@ export class ContentTypesCollection {
     /**
      * Delete a content type
      */
-    static async delete(id: string | ObjectId) {
+    static async delete(id: string | ObjectId): Promise<boolean> {
         try {
-            const collection = dbClient.collection<ContentType>(COLLECTION_NAME);
+            const collection = dbClient.collection<ContentTypeDocument>(COLLECTION_NAME);
             const contentInstancesCollection = dbClient.collection('contentInstances');
 
             const objectId = typeof id === 'string' ? new ObjectId(id) : id;
 
             // Check if there are any content instances using this type
+            // Convert objectId to string for the query since contentTypeId is stored as string
             const instanceCount = await contentInstancesCollection.countDocuments({ 
-                contentTypeId: objectId 
+                contentTypeId: objectId.toString() 
             });
 
             if (instanceCount > 0) {

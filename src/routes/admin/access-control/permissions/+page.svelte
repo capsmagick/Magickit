@@ -8,7 +8,7 @@
 	import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '$lib/components/ui/dialog';
 	import { Label } from '$lib/components/ui/label';
 	import { Textarea } from '$lib/components/ui/textarea';
-	import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '$lib/components/ui/select';
+	import * as Select from '$lib/components/ui/select';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert';
 	import { 
 		Plus, 
@@ -322,28 +322,28 @@
 					</div>
 				</div>
 				<div class="flex flex-col sm:flex-row gap-2">
-					<Select bind:value={resourceFilter}>
-						<SelectTrigger class="w-full sm:w-[140px]">
-							<SelectValue placeholder="Resource" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="">All Resources</SelectItem>
+					<Select.Root bind:value={resourceFilter}>
+						<Select.Trigger class="w-full sm:w-[140px]">
+							<Select.Value placeholder="Resource" />
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="">All Resources</Select.Item>
 							{#each getUniqueResources() as resource}
-								<SelectItem value={resource}>{capitalizeFirst(resource)}</SelectItem>
+								<Select.Item value={resource}>{capitalizeFirst(resource)}</Select.Item>
 							{/each}
-						</SelectContent>
-					</Select>
-					<Select bind:value={actionFilter}>
-						<SelectTrigger class="w-full sm:w-[120px]">
-							<SelectValue placeholder="Action" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="">All Actions</SelectItem>
+						</Select.Content>
+					</Select.Root>
+					<Select.Root bind:value={actionFilter}>
+						<Select.Trigger class="w-full sm:w-[120px]">
+							<Select.Value placeholder="Action" />
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="">All Actions</Select.Item>
 							{#each getUniqueActions() as action}
-								<SelectItem value={action}>{capitalizeFirst(action)}</SelectItem>
+								<Select.Item value={action}>{capitalizeFirst(action)}</Select.Item>
 							{/each}
-						</SelectContent>
-					</Select>
+						</Select.Content>
+					</Select.Root>
 					<Button variant="outline" onclick={resetFilters} class="transition-colors duration-200">
 						Reset
 					</Button>
@@ -474,16 +474,16 @@
 			
 			<div class="space-y-2">
 				<Label for="create-resource" class="text-sm font-medium">Resource *</Label>
-				<Select bind:value={formData.resource}>
-					<SelectTrigger>
-						<SelectValue placeholder="Select resource" />
-					</SelectTrigger>
-					<SelectContent>
+				<Select.Root bind:value={formData.resource}>
+					<Select.Trigger>
+						<Select.Value placeholder="Select resource" />
+					</Select.Trigger>
+					<Select.Content>
 						{#each availableResources as resource}
-							<SelectItem value={resource}>{capitalizeFirst(resource)}</SelectItem>
+							<Select.Item value={resource}>{capitalizeFirst(resource)}</Select.Item>
 						{/each}
-					</SelectContent>
-				</Select>
+					</Select.Content>
+				</Select.Root>
 				{#if errors.resource}
 					<p class="text-sm text-destructive">{errors.resource}</p>
 				{/if}
@@ -491,16 +491,16 @@
 			
 			<div class="space-y-2">
 				<Label for="create-action" class="text-sm font-medium">Action *</Label>
-				<Select bind:value={formData.action}>
-					<SelectTrigger>
-						<SelectValue placeholder="Select action" />
-					</SelectTrigger>
-					<SelectContent>
+				<Select.Root bind:value={formData.action}>
+					<Select.Trigger>
+						<Select.Value placeholder="Select action" />
+					</Select.Trigger>
+					<Select.Content>
 						{#each availableActions as action}
-							<SelectItem value={action}>{capitalizeFirst(action)}</SelectItem>
+							<Select.Item value={action}>{capitalizeFirst(action)}</Select.Item>
 						{/each}
-					</SelectContent>
-				</Select>
+					</Select.Content>
+				</Select.Root>
 				{#if errors.action}
 					<p class="text-sm text-destructive">{errors.action}</p>
 				{/if}
@@ -574,16 +574,16 @@
 			
 			<div class="space-y-2">
 				<Label for="edit-resource" class="text-sm font-medium">Resource *</Label>
-				<Select bind:value={formData.resource}>
-					<SelectTrigger>
-						<SelectValue placeholder="Select resource" />
-					</SelectTrigger>
-					<SelectContent>
+				<Select.Root bind:value={formData.resource}>
+					<Select.Trigger>
+						<Select.Value placeholder="Select resource" />
+					</Select.Trigger>
+					<Select.Content>
 						{#each availableResources as resource}
-							<SelectItem value={resource}>{capitalizeFirst(resource)}</SelectItem>
+							<Select.Item value={resource}>{capitalizeFirst(resource)}</Select.Item>
 						{/each}
-					</SelectContent>
-				</Select>
+					</Select.Content>
+				</Select.Root>
 				{#if errors.resource}
 					<p class="text-sm text-destructive">{errors.resource}</p>
 				{/if}
@@ -591,16 +591,16 @@
 			
 			<div class="space-y-2">
 				<Label for="edit-action" class="text-sm font-medium">Action *</Label>
-				<Select bind:value={formData.action}>
-					<SelectTrigger>
-						<SelectValue placeholder="Select action" />
-					</SelectTrigger>
-					<SelectContent>
+				<Select.Root bind:value={formData.action}>
+					<Select.Trigger>
+						<Select.Value placeholder="Select action" />
+					</Select.Trigger>
+					<Select.Content>
 						{#each availableActions as action}
-							<SelectItem value={action}>{capitalizeFirst(action)}</SelectItem>
+							<Select.Item value={action}>{capitalizeFirst(action)}</Select.Item>
 						{/each}
-					</SelectContent>
-				</Select>
+					</Select.Content>
+				</Select.Root>
 				{#if errors.action}
 					<p class="text-sm text-destructive">{errors.action}</p>
 				{/if}

@@ -4,13 +4,7 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
-	import {
-		Select,
-		SelectContent,
-		SelectItem,
-		SelectTrigger,
-		SelectValue
-	} from '$lib/components/ui/select/index.js';
+	import * as Select from "$lib/components/ui/select";
 	import {
 		Dialog,
 		DialogContent,
@@ -39,19 +33,20 @@
 		Tag,
 		BarChart3
 	} from '@lucide/svelte';
+	import type { KnowledgeBaseArticle, AnalyticsData } from '$lib/types/index.js';
 
 	let hasCheckedAuth = $state(false);
 	let showCreateDialog = $state(false);
 	let showEditDialog = $state(false);
-	let selectedArticle: any = $state(null);
+	let selectedArticle: KnowledgeBaseArticle | null = $state(null);
 	let searchTerm = $state('');
-	let categoryFilter = $state('all');
+	let categoryFilter = $state<string>('all');
 	let isLoading = $state(false);
 
 	const session = authClient.useSession();
 
 	// Mock data for demonstration
-	let knowledgeBase = $state([
+	let knowledgeBase = $state<KnowledgeBaseArticle[]>([
 		{
 			id: 'KB-001',
 			title: 'How to reset your password',
@@ -192,7 +187,7 @@ For API support, contact our technical team.`,
 		excerpt: '',
 		category: 'general',
 		tags: '',
-		status: 'draft'
+		status: 'draft' as 'draft' | 'published' | 'archived'
 	});
 
 	let editArticle = $state({
@@ -201,7 +196,7 @@ For API support, contact our technical team.`,
 		excerpt: '',
 		category: 'general',
 		tags: '',
-		status: 'draft'
+		status: 'draft' as 'draft' | 'published' | 'archived'
 	});
 
 	// Check authentication
@@ -293,7 +288,7 @@ For API support, contact our technical team.`,
 		}
 	}
 
-	function openEditDialog(article: any) {
+	function openEditDialog(article: KnowledgeBaseArticle) {
 		selectedArticle = article;
 		editArticle = {
 			title: article.title,
@@ -351,6 +346,69 @@ For API support, contact our technical team.`,
 			avgHelpfulRating
 		};
 	});
+
+
+	const newArticleCategoryOptions = [
+		{ value: 'all', label: 'All Categories' },
+		{ value: 'general', label: 'General' },
+		{ value: 'authentication', label: 'Authentication' },
+		{ value: 'administration', label: 'Administration' },
+		{ value: 'api', label: 'API' },
+		{ value: 'troubleshooting', label: 'Troubleshooting' },
+		{ value: 'faq', label: 'FAQ' },
+		{ value: 'getting-started', label: 'Getting Started' },
+		{ value: 'features', label: 'Features' }
+	];
+
+	const selectedNewArticleCategoryLabel = $derived(
+		newArticleCategoryOptions.find(option => option.value === newArticle.category)?.label ?? 'Select option'
+	);
+
+	const newArticleStatusOptions = [
+		{ value: 'all', label: 'All Status' },
+		{ value: 'draft', label: 'Draft' },
+		{ value: 'published', label: 'Published' },
+		{ value: 'archived', label: 'Archived' }
+	];
+
+	const selectedNewArticleStatusLabel = $derived(
+		newArticleStatusOptions.find(option => option.value === newArticle.status)?.label ?? 'Select option'
+	);
+
+	const categoryFilterOptions = [
+		{ value: 'all', label: 'All Categories' }
+	];
+
+	const selectedCategoryFilterLabel = $derived(
+		categoryFilterOptions.find(option => option.value === categoryFilter)?.label ?? 'Category'
+	);
+
+	const editArticleCategoryOptions = [
+		{ value: 'all', label: 'All Categories' },
+		{ value: 'general', label: 'General' },
+		{ value: 'authentication', label: 'Authentication' },
+		{ value: 'administration', label: 'Administration' },
+		{ value: 'api', label: 'API' },
+		{ value: 'troubleshooting', label: 'Troubleshooting' },
+		{ value: 'faq', label: 'FAQ' },
+		{ value: 'getting-started', label: 'Getting Started' },
+		{ value: 'features', label: 'Features' }
+	];
+
+	const selectedEditArticleCategoryLabel = $derived(
+		editArticleCategoryOptions.find(option => option.value === editArticle.category)?.label ?? 'Select option'
+	);
+
+	const editArticleStatusOptions = [
+		{ value: 'all', label: 'All Status' },
+		{ value: 'draft', label: 'Draft' },
+		{ value: 'published', label: 'Published' },
+		{ value: 'archived', label: 'Archived' }
+	];
+
+	const selectedEditArticleStatusLabel = $derived(
+		editArticleStatusOptions.find(option => option.value === editArticle.status)?.label ?? 'Select option'
+	);
 </script>
 
 <div class="space-y-6">
@@ -412,34 +470,29 @@ For API support, contact our technical team.`,
 					<div class="grid grid-cols-2 gap-4">
 						<div class="space-y-2">
 							<Label for="articleCategory">Category</Label>
-							<Select bind:value={newArticle.category}>
-								<SelectTrigger>
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="general">General</SelectItem>
-									<SelectItem value="getting-started">Getting Started</SelectItem>
-									<SelectItem value="troubleshooting">Troubleshooting</SelectItem>
-									<SelectItem value="features">Features</SelectItem>
-									<SelectItem value="api">API</SelectItem>
-									<SelectItem value="authentication">Authentication</SelectItem>
-									<SelectItem value="administration">Administration</SelectItem>
-									<SelectItem value="faq">FAQ</SelectItem>
-								</SelectContent>
-							</Select>
+							<Select.Root type="single" bind:value={newArticle.category}>
+				<Select.Trigger class="w-32">
+					{selectedNewArticleCategoryLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each newArticleCategoryOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 						</div>
 						<div class="space-y-2">
 							<Label for="articleStatus">Status</Label>
-							<Select bind:value={newArticle.status}>
-								<SelectTrigger>
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="draft">Draft</SelectItem>
-									<SelectItem value="published">Published</SelectItem>
-									<SelectItem value="archived">Archived</SelectItem>
-								</SelectContent>
-							</Select>
+							<Select.Root type="single" bind:value={newArticle.status}>
+				<Select.Trigger class="w-32">
+					{selectedNewArticleStatusLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each newArticleStatusOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 						</div>
 					</div>
 					<div class="space-y-2">
@@ -529,17 +582,16 @@ For API support, contact our technical team.`,
 					</div>
 				</div>
 				<div class="flex gap-2">
-					<Select bind:value={categoryFilter}>
-						<SelectTrigger class="w-40">
-							<SelectValue placeholder="Category" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="all">All Categories</SelectItem>
-							{#each categories as category}
-								<SelectItem value={category}>{category}</SelectItem>
-							{/each}
-						</SelectContent>
-					</Select>
+					<Select.Root type="single" bind:value={categoryFilter}>
+				<Select.Trigger class="w-32">
+					{selectedCategoryFilterLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each categoryFilterOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 					<Button variant="outline" onclick={resetFilters} class="transition-colors duration-200">
 						Reset
 					</Button>
@@ -573,7 +625,7 @@ For API support, contact our technical team.`,
 		</div>
 	{:else}
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-			{#each filteredArticles as article}
+			{#each filteredArticles() as article}
 				{@const statusInfo = getStatusBadge(article.status)}
 				<Card.Root class="transition-shadow duration-200 hover:shadow-md">
 					<Card.Header class="space-y-2">
@@ -714,34 +766,29 @@ For API support, contact our technical team.`,
 			<div class="grid grid-cols-2 gap-4">
 				<div class="space-y-2">
 					<Label for="editCategory">Category</Label>
-					<Select bind:value={editArticle.category}>
-						<SelectTrigger>
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="general">General</SelectItem>
-							<SelectItem value="getting-started">Getting Started</SelectItem>
-							<SelectItem value="troubleshooting">Troubleshooting</SelectItem>
-							<SelectItem value="features">Features</SelectItem>
-							<SelectItem value="api">API</SelectItem>
-							<SelectItem value="authentication">Authentication</SelectItem>
-							<SelectItem value="administration">Administration</SelectItem>
-							<SelectItem value="faq">FAQ</SelectItem>
-						</SelectContent>
-					</Select>
+					<Select.Root type="single" bind:value={editArticle.category}>
+				<Select.Trigger class="w-32">
+					{selectedEditArticleCategoryLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each editArticleCategoryOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 				</div>
 				<div class="space-y-2">
 					<Label for="editStatus">Status</Label>
-					<Select bind:value={editArticle.status}>
-						<SelectTrigger>
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="draft">Draft</SelectItem>
-							<SelectItem value="published">Published</SelectItem>
-							<SelectItem value="archived">Archived</SelectItem>
-						</SelectContent>
-					</Select>
+					<Select.Root type="single" bind:value={editArticle.status}>
+				<Select.Trigger class="w-32">
+					{selectedEditArticleStatusLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each editArticleStatusOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 				</div>
 			</div>
 			<div class="space-y-2">

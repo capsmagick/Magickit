@@ -7,7 +7,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
 	import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '$lib/components/ui/dialog';
-	import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '$lib/components/ui/select';
+	import * as Select from '$lib/components/ui/select';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert';
 	import { Avatar, AvatarFallback, AvatarImage } from '$lib/components/ui/avatar';
 	import { Checkbox } from '$lib/components/ui/checkbox';
@@ -268,6 +268,37 @@
 		if (daysSince < 30) return `Active ${Math.floor(daysSince / 7)} weeks ago`;
 		return `Active ${Math.floor(daysSince / 30)} months ago`;
 	}
+
+
+	const profileDataPreferencesThemeOptions = [
+		{ value: 'light', label: 'Light' },
+		{ value: 'dark', label: 'Dark' },
+		{ value: 'system', label: 'System' }
+	];
+
+	const selectedProfileDataPreferencesThemeLabel = $derived(
+		profileDataPreferencesThemeOptions.find(option => option.value === profileData.preferences.theme)?.label ?? 'Select option'
+	);
+
+	const bulkOperationActionOptions = [
+		{ value: 'update-theme', label: 'Update Theme' },
+		{ value: 'update-notifications', label: 'Update Notifications' },
+		{ value: 'reset-preferences', label: 'Reset Preferences' }
+	];
+
+	const selectedBulkOperationActionLabel = $derived(
+		bulkOperationActionOptions.find(option => option.value === bulkOperation.action)?.label ?? 'Select action'
+	);
+
+	const bulkOperationThemeOptions = [
+		{ value: 'light', label: 'Light' },
+		{ value: 'dark', label: 'Dark' },
+		{ value: 'system', label: 'System' }
+	];
+
+	const selectedBulkOperationThemeLabel = $derived(
+		bulkOperationThemeOptions.find(option => option.value === bulkOperation.theme)?.label ?? 'Select option'
+	);
 </script>
 
 <svelte:head>
@@ -625,16 +656,16 @@ onclick={() => goToPage(currentPage - 1)}
 				<div class="space-y-4">
 					<div class="space-y-2">
 						<Label class="text-sm font-medium">Theme</Label>
-						<Select bind:value={profileData.preferences.theme}>
-							<SelectTrigger>
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="light">Light</SelectItem>
-								<SelectItem value="dark">Dark</SelectItem>
-								<SelectItem value="system">System</SelectItem>
-							</SelectContent>
-						</Select>
+						<Select.Root type="single" bind:value={profileData.preferences.theme}>
+				<Select.Trigger class="w-32">
+					{selectedProfileDataPreferencesThemeLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each profileDataPreferencesThemeOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 					</div>
 					<div class="space-y-3">
 						<Label class="text-sm font-medium">Notifications</Label>
@@ -704,31 +735,31 @@ onclick={() => goToPage(currentPage - 1)}
 		<div class="space-y-4">
 			<div class="space-y-2">
 				<Label for="bulk-action" class="text-sm font-medium">Action</Label>
-				<Select bind:value={bulkOperation.action}>
-					<SelectTrigger>
-						<SelectValue placeholder="Select action" />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="update-theme">Update Theme</SelectItem>
-						<SelectItem value="update-notifications">Update Notifications</SelectItem>
-						<SelectItem value="reset-preferences">Reset Preferences</SelectItem>
-					</SelectContent>
-				</Select>
+				<Select.Root type="single" bind:value={bulkOperation.action}>
+				<Select.Trigger class="w-32">
+					{selectedBulkOperationActionLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each bulkOperationActionOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 			</div>
 
 			{#if bulkOperation.action === 'update-theme'}
 				<div class="space-y-2">
 					<Label class="text-sm font-medium">Theme</Label>
-					<Select bind:value={bulkOperation.theme}>
-						<SelectTrigger>
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="light">Light</SelectItem>
-							<SelectItem value="dark">Dark</SelectItem>
-							<SelectItem value="system">System</SelectItem>
-						</SelectContent>
-					</Select>
+					<Select.Root type="single" bind:value={bulkOperation.theme}>
+				<Select.Trigger class="w-32">
+					{selectedBulkOperationThemeLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each bulkOperationThemeOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 				</div>
 			{/if}
 

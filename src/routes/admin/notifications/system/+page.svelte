@@ -313,6 +313,68 @@
 		if (hours > 0) return `${hours}h ${minutes % 60}m`;
 		return `${minutes}m`;
 	}
+
+
+	const statusFilterOptions = [
+		{ value: 'all', label: 'All Status' },
+		{ value: 'active', label: 'Active' },
+		{ value: 'resolved', label: 'Resolved' },
+		{ value: 'acknowledged', label: 'Acknowledged' }
+	];
+
+	const selectedStatusFilterLabel = $derived(
+		statusFilterOptions.find(option => option.value === statusFilter)?.label ?? 'Status'
+	);
+
+	const severityFilterOptions = [
+		{ value: 'all', label: 'All Priority' },
+		{ value: 'low', label: 'Low' },
+		{ value: 'medium', label: 'Medium' },
+		{ value: 'high', label: 'High' }
+	];
+
+	const selectedSeverityFilterLabel = $derived(
+		severityFilterOptions.find(option => option.value === severityFilter)?.label ?? 'Severity'
+	);
+
+	const newAlertSeverityOptions = [
+		{ value: 'all', label: 'All Priority' },
+		{ value: 'low', label: 'Low' },
+		{ value: 'medium', label: 'Medium' },
+		{ value: 'high', label: 'High' }
+	];
+
+	const selectedNewAlertSeverityLabel = $derived(
+		newAlertSeverityOptions.find(option => option.value === newAlert.severity)?.label ?? 'Select severity'
+	);
+
+	const newAlertCategoryOptions = [
+		{ value: 'all', label: 'All Categories' },
+		{ value: 'general', label: 'General' },
+		{ value: 'performance', label: 'Performance' },
+		{ value: 'database', label: 'Database' },
+		{ value: 'network', label: 'Network' },
+		{ value: 'storage', label: 'Storage' },
+		{ value: 'security', label: 'Security' },
+		{ value: 'system', label: 'System' }
+	];
+
+	const selectedNewAlertCategoryLabel = $derived(
+		newAlertCategoryOptions.find(option => option.value === newAlert.category)?.label ?? 'Select category'
+	);
+
+	const newAlertSourceOptions = [
+		{ value: 'manual', label: 'Manual Entry' },
+		{ value: 'monitoring-system', label: 'Monitoring System' },
+		{ value: 'database-monitor', label: 'Database Monitor' },
+		{ value: 'system-monitor', label: 'System Monitor' },
+		{ value: 'ssl-monitor', label: 'SSL Monitor' },
+		{ value: 'application', label: 'Application' }
+	];
+
+	const selectedNewAlertSourceLabel = $derived(
+		newAlertSourceOptions.find(option => option.value === newAlert.source)?.label ?? 'Select source'
+	);
 </script>
 
 <div class="space-y-6">
@@ -390,28 +452,26 @@
 					</div>
 				</div>
 				<div class="flex gap-2">
-					<Select.Root bind:selected={statusFilter}>
-						<Select.Trigger class="w-32">
-							<Select.Value placeholder="Status" />
-						</Select.Trigger>
-						<Select.Content>
-							<Select.Item value="all">All Status</Select.Item>
-							<Select.Item value="active">Active</Select.Item>
-							<Select.Item value="acknowledged">Acknowledged</Select.Item>
-							<Select.Item value="resolved">Resolved</Select.Item>
-						</Select.Content>
-					</Select.Root>
-					<Select.Root bind:selected={severityFilter}>
-						<Select.Trigger class="w-32">
-							<Select.Value placeholder="Severity" />
-						</Select.Trigger>
-						<Select.Content>
-							<Select.Item value="all">All Severity</Select.Item>
-							<Select.Item value="high">High</Select.Item>
-							<Select.Item value="medium">Medium</Select.Item>
-							<Select.Item value="low">Low</Select.Item>
-						</Select.Content>
-					</Select.Root>
+					<Select.Root type="single" bind:value={statusFilter}>
+				<Select.Trigger class="w-32">
+					{selectedStatusFilterLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each statusFilterOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
+					<Select.Root type="single" bind:value={severityFilter}>
+				<Select.Trigger class="w-32">
+					{selectedSeverityFilterLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each severityFilterOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 					<Button variant="outline" onclick={() => {
 						searchTerm = '';
 						statusFilter = 'all';
@@ -610,16 +670,16 @@
 					</div>
 					<div class="space-y-2">
 						<Label for="severity">Severity</Label>
-						<Select.Root bind:selected={newAlert.severity}>
-							<Select.Trigger>
-								<Select.Value placeholder="Select severity" />
-							</Select.Trigger>
-							<Select.Content>
-								<Select.Item value="high">High - Critical issue requiring immediate attention</Select.Item>
-								<Select.Item value="medium">Medium - Important issue that should be addressed soon</Select.Item>
-								<Select.Item value="low">Low - Minor issue that can be addressed when convenient</Select.Item>
-							</Select.Content>
-						</Select.Root>
+						<Select.Root type="single" bind:value={newAlert.severity}>
+				<Select.Trigger class="w-32">
+					{selectedNewAlertSeverityLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each newAlertSeverityOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 					</div>
 				</div>
 
@@ -640,36 +700,29 @@
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div class="space-y-2">
 						<Label for="category">Category</Label>
-						<Select.Root bind:selected={newAlert.category}>
-							<Select.Trigger>
-								<Select.Value placeholder="Select category" />
-							</Select.Trigger>
-							<Select.Content>
-								<Select.Item value="performance">Performance</Select.Item>
-								<Select.Item value="database">Database</Select.Item>
-								<Select.Item value="network">Network</Select.Item>
-								<Select.Item value="storage">Storage</Select.Item>
-								<Select.Item value="security">Security</Select.Item>
-								<Select.Item value="system">System</Select.Item>
-								<Select.Item value="general">General</Select.Item>
-							</Select.Content>
-						</Select.Root>
+						<Select.Root type="single" bind:value={newAlert.category}>
+				<Select.Trigger class="w-32">
+					{selectedNewAlertCategoryLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each newAlertCategoryOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 					</div>
 					<div class="space-y-2">
 						<Label for="source">Source</Label>
-						<Select.Root bind:selected={newAlert.source}>
-							<Select.Trigger>
-								<Select.Value placeholder="Select source" />
-							</Select.Trigger>
-							<Select.Content>
-								<Select.Item value="manual">Manual Entry</Select.Item>
-								<Select.Item value="monitoring-system">Monitoring System</Select.Item>
-								<Select.Item value="database-monitor">Database Monitor</Select.Item>
-								<Select.Item value="system-monitor">System Monitor</Select.Item>
-								<Select.Item value="ssl-monitor">SSL Monitor</Select.Item>
-								<Select.Item value="application">Application</Select.Item>
-							</Select.Content>
-						</Select.Root>
+						<Select.Root type="single" bind:value={newAlert.source}>
+				<Select.Trigger class="w-32">
+					{selectedNewAlertSourceLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each newAlertSourceOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 					</div>
 				</div>
 

@@ -1,4 +1,5 @@
-import { ObjectId } from 'mongodb';
+// Using string IDs for client-server compatibility
+// Server-side code can convert these to ObjectId as needed
 
 // ============================================================================
 // RBAC Models - Extending Better Auth Admin Plugin
@@ -9,10 +10,10 @@ import { ObjectId } from 'mongodb';
  * This works alongside Better Auth's admin plugin for more granular permissions
  */
 export interface Role {
-    _id: ObjectId;
+    _id: string;
     name: string;
     description: string;
-    permissions: ObjectId[]; // References to Permission documents
+    permissions: string[]; // References to Permission documents
     isSystemRole: boolean; // true for 'admin' and 'user' roles from Better Auth
     createdAt: Date;
     updatedAt: Date;
@@ -23,7 +24,7 @@ export interface Role {
  * Defines specific actions that can be performed on resources
  */
 export interface Permission {
-    _id: ObjectId;
+    _id: string;
     name: string;
     resource: string; // e.g., 'user', 'role', 'content', 'system'
     action: 'create' | 'read' | 'update' | 'delete' | 'manage'; // CRUD + manage
@@ -36,10 +37,10 @@ export interface Permission {
  * Extends Better Auth's single role system to support multiple roles
  */
 export interface UserRole {
-    _id: ObjectId;
-    userId: ObjectId; // Reference to Better Auth user
-    roleId: ObjectId; // Reference to Role document
-    assignedBy: ObjectId; // Reference to admin who assigned the role
+    _id: string;
+    userId: string; // Reference to Better Auth user
+    roleId: string; // Reference to Role document
+    assignedBy: string; // Reference to admin who assigned the role
     assignedAt: Date;
     expiresAt?: Date; // Optional role expiration
 }
@@ -49,11 +50,11 @@ export interface UserRole {
  * Essential for security and compliance
  */
 export interface AuditLog {
-    _id: ObjectId;
-    userId: ObjectId; // Reference to Better Auth user
+    _id: string;
+    userId: string; // Reference to Better Auth user
     action: string; // e.g., 'role_assigned', 'permission_granted', 'access_denied'
     resource: string; // What was accessed/modified
-    resourceId?: ObjectId; // Specific resource ID if applicable
+    resourceId?: string; // Specific resource ID if applicable
     details: Record<string, any>; // Additional context
     ipAddress: string;
     userAgent: string;
@@ -69,12 +70,12 @@ export interface AuditLog {
  * Blog Post model for content management
  */
 export interface BlogPost {
-    _id: ObjectId;
+    _id: string;
     title: string;
     slug: string;
     excerpt: string;
     content: string;
-    author: ObjectId; // Reference to Better Auth user
+    author: string; // Reference to Better Auth user
     publishedAt?: Date;
     updatedAt: Date;
     createdAt: Date;
@@ -89,7 +90,7 @@ export interface BlogPost {
  * Portfolio Item model for showcasing work
  */
 export interface PortfolioItem {
-    _id: ObjectId;
+    _id: string;
     title: string;
     description: string;
     images: string[];
@@ -106,7 +107,7 @@ export interface PortfolioItem {
  * Contact Submission model for handling contact form submissions
  */
 export interface ContactSubmission {
-    _id: ObjectId;
+    _id: string;
     name: string;
     email: string;
     subject: string;
@@ -114,7 +115,7 @@ export interface ContactSubmission {
     status: 'new' | 'read' | 'replied' | 'closed';
     submittedAt: Date;
     respondedAt?: Date;
-    respondedBy?: ObjectId; // Reference to admin who responded
+    respondedBy?: string; // Reference to admin who responded
     ipAddress: string;
     userAgent: string;
 }
@@ -128,8 +129,8 @@ export interface ContactSubmission {
  * Better Auth handles authentication, this handles additional profile data
  */
 export interface UserProfile {
-    _id: ObjectId;
-    userId: ObjectId; // Reference to Better Auth user
+    _id: string;
+    userId: string; // Reference to Better Auth user
     bio?: string;
     location?: string;
     website?: string;
@@ -158,12 +159,12 @@ export interface UserProfile {
  * System Settings for application configuration
  */
 export interface SystemSettings {
-    _id: ObjectId;
+    _id: string;
     key: string;
     value: any;
     description: string;
     category: 'general' | 'security' | 'email' | 'seo' | 'features';
-    updatedBy: ObjectId; // Reference to admin who updated
+    updatedBy: string; // Reference to admin who updated
     updatedAt: Date;
 }
 
@@ -171,7 +172,7 @@ export interface SystemSettings {
  * Email Template for system notifications
  */
 export interface EmailTemplate {
-    _id: ObjectId;
+    _id: string;
     name: string;
     subject: string;
     htmlContent: string;
@@ -191,7 +192,7 @@ export interface EmailTemplate {
  * Content Type Definition - Defines the structure of dynamic content
  */
 export interface ContentType {
-    _id: ObjectId;
+    _id: string;
     name: string;
     slug: string;
     description?: string;
@@ -206,7 +207,7 @@ export interface ContentType {
  * Content Field Definition - Defines individual fields within a content type
  */
 export interface ContentField {
-    _id: ObjectId;
+    _id: string;
     name: string;
     label: string;
     type: 'text' | 'textarea' | 'richtext' | 'image' | 'video' | 'select' | 'multiselect' | 'boolean' | 'date' | 'number' | 'url' | 'email';
@@ -232,16 +233,16 @@ export interface ValidationRule {
  * Content Instance - Actual content data based on a content type
  */
 export interface ContentInstance {
-    _id: ObjectId;
-    contentTypeId: ObjectId; // Reference to ContentType
+    _id: string;
+    contentTypeId: string; // Reference to ContentType
     slug: string;
     title: string; // Every content instance has a title
     data: Record<string, any>; // Dynamic field data
     status: 'draft' | 'published' | 'archived' | 'scheduled';
     publishedAt?: Date;
     scheduledAt?: Date;
-    author: ObjectId; // Reference to Better Auth user
-    lastModifiedBy: ObjectId; // Reference to Better Auth user
+    author: string; // Reference to Better Auth user
+    lastModifiedBy: string; // Reference to Better Auth user
     version: number; // For content versioning
     seo: {
         title?: string;
@@ -258,11 +259,11 @@ export interface ContentInstance {
  * Content Version - For tracking content changes
  */
 export interface ContentVersion {
-    _id: ObjectId;
-    contentInstanceId: ObjectId; // Reference to ContentInstance
+    _id: string;
+    contentInstanceId: string; // Reference to ContentInstance
     version: number;
     data: Record<string, any>; // Snapshot of content data
-    author: ObjectId; // Who made this version
+    author: string; // Who made this version
     changeNote?: string;
     createdAt: Date;
 }
@@ -275,12 +276,12 @@ export interface ContentVersion {
  * Media Folder - Hierarchical organization of media files
  */
 export interface MediaFolder {
-    _id: ObjectId;
+    _id: string;
     name: string;
-    parentId?: ObjectId; // Reference to parent MediaFolder
+    parentId?: string; // Reference to parent MediaFolder
     path: string; // Full path for easy querying
     description?: string;
-    createdBy: ObjectId; // Reference to Better Auth user
+    createdBy: string; // Reference to Better Auth user
     createdAt: Date;
     updatedAt: Date;
 }
@@ -289,7 +290,7 @@ export interface MediaFolder {
  * Media File - Represents uploaded media with variants
  */
 export interface MediaFile {
-    _id: ObjectId;
+    _id: string;
     filename: string;
     originalName: string;
     mimeType: string;
@@ -297,7 +298,7 @@ export interface MediaFile {
     width?: number;
     height?: number;
     duration?: number; // for video/audio files
-    folderId?: ObjectId; // Reference to MediaFolder
+    folderId?: string; // Reference to MediaFolder
     s3Key: string;
     s3Url: string;
     cdnUrl?: string;
@@ -306,7 +307,7 @@ export interface MediaFile {
     tags: string[];
     altText?: string;
     caption?: string;
-    uploadedBy: ObjectId; // Reference to Better Auth user
+    uploadedBy: string; // Reference to Better Auth user
     createdAt: Date;
     updatedAt: Date;
 }
@@ -315,7 +316,7 @@ export interface MediaFile {
  * Media Variant - Different sizes/formats of the same media file
  */
 export interface MediaVariant {
-    _id: ObjectId;
+    _id: string;
     name: string; // 'thumbnail', 'medium', 'large', 'webp', etc.
     width: number;
     height: number;
@@ -349,7 +350,7 @@ export interface MediaMetadata {
  * System Metrics - Real-time system performance data
  */
 export interface SystemMetrics {
-    _id: ObjectId;
+    _id: string;
     timestamp: Date;
     cpu: {
         usage: number; // percentage
@@ -395,7 +396,7 @@ export interface SystemMetrics {
  * System Alert - Automated alerts based on thresholds
  */
 export interface SystemAlert {
-    _id: ObjectId;
+    _id: string;
     type: 'info' | 'warning' | 'error' | 'critical';
     category: 'cpu' | 'memory' | 'disk' | 'network' | 'database' | 'application' | 'security';
     title: string;
@@ -405,7 +406,7 @@ export interface SystemAlert {
     currentValue: number;
     severity: 1 | 2 | 3 | 4 | 5; // 1 = low, 5 = critical
     acknowledged: boolean;
-    acknowledgedBy?: ObjectId; // Reference to Better Auth user
+    acknowledgedBy?: string; // Reference to Better Auth user
     acknowledgedAt?: Date;
     resolvedAt?: Date;
     createdAt: Date;
@@ -415,7 +416,7 @@ export interface SystemAlert {
  * System Health Status - Overall system health summary
  */
 export interface SystemHealthStatus {
-    _id: ObjectId;
+    _id: string;
     status: 'healthy' | 'warning' | 'critical' | 'maintenance';
     score: number; // 0-100 health score
     uptime: number; // seconds

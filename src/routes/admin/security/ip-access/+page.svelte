@@ -315,6 +315,25 @@
 	function refreshData() {
 		loadIPAccessData();
 	}
+
+
+	const newIPRuleTypeOptions = [
+		{ value: 'allow', label: 'Allow' },
+		{ value: 'block', label: 'Block' }
+	];
+
+	const selectedNewIPRuleTypeLabel = $derived(
+		newIPRuleTypeOptions.find(option => option.value === newIPRule.type)?.label ?? 'Select action'
+	);
+
+	const editIPRuleTypeOptions = [
+		{ value: 'allow', label: 'Allow' },
+		{ value: 'block', label: 'Block' }
+	];
+
+	const selectedEditIPRuleTypeLabel = $derived(
+		editIPRuleTypeOptions.find(option => option.value === editIPRule.type)?.label ?? 'Select action'
+	);
 </script>
 
 <div class="space-y-6">
@@ -605,15 +624,16 @@
 			</div>
 			<div class="space-y-2">
 				<Label for="ipType">Action *</Label>
-				<Select.Root bind:value={newIPRule.type}>
-					<Select.Trigger>
-						<Select.Value placeholder="Select action" />
-					</Select.Trigger>
-					<Select.Content>
-						<Select.Item value="allow">Allow</Select.Item>
-						<Select.Item value="block">Block</Select.Item>
-					</Select.Content>
-				</Select.Root>
+				<Select.Root type="single" bind:value={newIPRule.type}>
+				<Select.Trigger class="w-32">
+					{selectedNewIPRuleTypeLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each newIPRuleTypeOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 			</div>
 			<Dialog.Footer>
 				<Button 
@@ -679,15 +699,16 @@
 			</div>
 			<div class="space-y-2">
 				<Label for="editIpType">Action *</Label>
-				<Select.Root bind:value={editIPRule.type}>
-					<Select.Trigger>
-						<Select.Value placeholder="Select action" />
-					</Select.Trigger>
-					<Select.Content>
-						<Select.Item value="allow">Allow</Select.Item>
-						<Select.Item value="block">Block</Select.Item>
-					</Select.Content>
-				</Select.Root>
+				<Select.Root type="single" bind:value={editIPRule.type}>
+				<Select.Trigger class="w-32">
+					{selectedEditIPRuleTypeLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each editIPRuleTypeOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 			</div>
 			<Dialog.Footer>
 				<Button 

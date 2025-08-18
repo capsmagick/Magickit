@@ -4,6 +4,14 @@ import type { ContentInstance } from '../models.js';
 
 const COLLECTION_NAME = 'contentInstances';
 
+// Internal type that uses ObjectId for database operations
+interface ContentInstanceDocument extends Omit<ContentInstance, '_id' | 'contentTypeId' | 'author' | 'lastModifiedBy'> {
+    _id: ObjectId;
+    contentTypeId: string; // Keep as string since it references ContentType._id
+    author: string; // Keep as string since it references user ID
+    lastModifiedBy: string; // Keep as string since it references user ID
+}
+
 /**
  * Content Instances Collection Handler
  * Provides CRUD operations for content instances with proper error handling
@@ -13,16 +21,16 @@ export class ContentInstancesCollection {
      * Get all content instances with optional filtering and pagination
      */
     static async findAll(options: {
-        contentTypeId?: ObjectId;
+        contentTypeId?: string;
         status?: ContentInstance['status'];
-        author?: ObjectId;
+        author?: string;
         limit?: number;
         skip?: number;
         sortBy?: 'createdAt' | 'updatedAt' | 'publishedAt' | 'title';
         sortOrder?: 'asc' | 'desc';
     } = {}) {
         try {
-            const collection = dbClient.collection<ContentInstance>(COLLECTION_NAME);
+            const collection = dbClient.collection<ContentInstanceDocument>(COLLECTION_NAME);
 
             // Build filter
             const filter: any = {};
@@ -56,12 +64,20 @@ export class ContentInstancesCollection {
     /**
      * Get a single content instance by ID
      */
-    static async findById(id: string | ObjectId) {
+    static async findById(id: string | ObjectId): Promise<ContentInstance | null> {
         try {
-            const collection = dbClient.collection<ContentInstance>(COLLECTION_NAME);
+            const collection = dbClient.collection<ContentInstanceDocument>(COLLECTION_NAME);
 
             const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-            const instance = await collection.findOne({ _id: objectId });
+            const document = await collection.findOne({ _id: objectId });
+
+            if (!document) return null;
+
+            // Convert ObjectId to string for client compatibility
+            const instance: ContentInstance = {
+                ...document,
+                _id: document._id.toString()
+            };
 
             return instance;
         } catch (error) {
@@ -75,7 +91,7 @@ export class ContentInstancesCollection {
      */
     static async findBySlug(slug: string, status?: ContentInstance['status']) {
         try {
-            const collection = dbClient.collection<ContentInstance>(COLLECTION_NAME);
+            const collection = dbClient.collection<ContentInstanceDocument>(COLLECTION_NAME);
 
             const filter: any = { slug };
             if (status) filter.status = status;
@@ -100,7 +116,7 @@ export class ContentInstancesCollection {
      */
     static async create(instanceData: Omit<ContentInstance, '_id' | 'createdAt' | 'updatedAt' | 'version'>) {
         try {
-            const collection = dbClient.collection<ContentInstance>(COLLECTION_NAME);
+            const collection = dbClient.collection<ContentInstanceDocument>(COLLECTION_NAME);
 
             // Check if slug already exists
             const existingInstance = await collection.findOne({ slug: instanceData.slug });
@@ -109,7 +125,7 @@ export class ContentInstancesCollection {
             }
 
             const now = new Date();
-            const newInstance: ContentInstance = {
+            const newInstanceDocument: ContentInstanceDocument = {
                 _id: new ObjectId(),
                 ...instanceData,
                 version: 1,
@@ -117,11 +133,17 @@ export class ContentInstancesCollection {
                 updatedAt: now
             };
 
-            const result = await collection.insertOne(newInstance);
+            const result = await collection.insertOne(newInstanceDocument);
             
             if (!result.acknowledged) {
                 throw new Error('Failed to create content instance');
             }
+
+            // Convert back to client format
+            const newInstance: ContentInstance = {
+                ...newInstanceDocument,
+                _id: newInstanceDocument._id.toString()
+            };
 
             // Create initial version
             await this.createVersion(newInstance._id, newInstance.data, instanceData.author, 'Initial version');
@@ -142,11 +164,11 @@ export class ContentInstancesCollection {
     static async update(
         id: string | ObjectId, 
         updateData: Partial<Omit<ContentInstance, '_id' | 'createdAt' | 'version'>>,
-        userId: ObjectId,
+        userId: string,
         changeNote?: string
     ) {
         try {
-            const collection = dbClient.collection<ContentInstance>(COLLECTION_NAME);
+            const collection = dbClient.collection<ContentInstanceDocument>(COLLECTION_NAME);
 
             const objectId = typeof id === 'string' ? new ObjectId(id) : id;
 
@@ -188,7 +210,7 @@ export class ContentInstancesCollection {
 
             // Create version if data changed
             if (updateData.data) {
-                await this.createVersion(objectId, updateData.data, userId, changeNote);
+                await this.createVersion(objectId.toString(), updateData.data, userId, changeNote);
             }
 
             return await this.findById(objectId);
@@ -206,7 +228,7 @@ export class ContentInstancesCollection {
      */
     static async delete(id: string | ObjectId) {
         try {
-            const collection = dbClient.collection<ContentInstance>(COLLECTION_NAME);
+            const collection = dbClient.collection<ContentInstanceDocument>(COLLECTION_NAME);
             const versionsCollection = dbClient.collection('contentVersions');
 
             const objectId = typeof id === 'string' ? new ObjectId(id) : id;
@@ -234,9 +256,9 @@ export class ContentInstancesCollection {
     /**
      * Publish a content instance
      */
-    static async publish(id: string | ObjectId, userId: ObjectId) {
+    static async publish(id: string | ObjectId, userId: string) {
         try {
-            const collection = dbClient.collection<ContentInstance>(COLLECTION_NAME);
+            const collection = dbClient.collection<ContentInstanceDocument>(COLLECTION_NAME);
 
             const objectId = typeof id === 'string' ? new ObjectId(id) : id;
 
@@ -269,9 +291,9 @@ export class ContentInstancesCollection {
     /**
      * Unpublish a content instance
      */
-    static async unpublish(id: string | ObjectId, userId: ObjectId) {
+    static async unpublish(id: string | ObjectId, userId: string) {
         try {
-            const collection = dbClient.collection<ContentInstance>(COLLECTION_NAME);
+            const collection = dbClient.collection<ContentInstanceDocument>(COLLECTION_NAME);
 
             const objectId = typeof id === 'string' ? new ObjectId(id) : id;
 
@@ -308,7 +330,7 @@ export class ContentInstancesCollection {
      */
     static async generateSlug(title: string, excludeId?: ObjectId): Promise<string> {
         try {
-            const collection = dbClient.collection<ContentInstance>(COLLECTION_NAME);
+            const collection = dbClient.collection<ContentInstanceDocument>(COLLECTION_NAME);
 
             // Create base slug from title
             let baseSlug = title
@@ -357,7 +379,7 @@ export class ContentInstancesCollection {
         skip?: number;
     } = {}) {
         try {
-            const collection = dbClient.collection<ContentInstance>(COLLECTION_NAME);
+            const collection = dbClient.collection<ContentInstanceDocument>(COLLECTION_NAME);
 
             const filter: any = {
                 $text: { $search: query }
@@ -367,7 +389,7 @@ export class ContentInstancesCollection {
             if (options.status) filter.status = options.status;
 
             const cursor = collection
-                .find(filter, { score: { $meta: 'textScore' } })
+                .find(filter)
                 .sort({ score: { $meta: 'textScore' } });
 
             if (options.skip) cursor.skip(options.skip);
@@ -387,7 +409,7 @@ export class ContentInstancesCollection {
      * Get published instances for public display
      */
     static async getPublishedInstances(options: {
-        contentTypeId?: ObjectId;
+        contentTypeId?: string;
         limit?: number;
         skip?: number;
     } = {}) {
@@ -403,9 +425,9 @@ export class ContentInstancesCollection {
      * Create a content version
      */
     private static async createVersion(
-        contentInstanceId: ObjectId,
+        contentInstanceId: string,
         data: Record<string, any>,
-        author: ObjectId,
+        author: string,
         changeNote?: string
     ) {
         try {

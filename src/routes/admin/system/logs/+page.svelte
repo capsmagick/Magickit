@@ -2,7 +2,7 @@
 	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
-	import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '$lib/components/ui/select';
+	import * as Select from '$lib/components/ui/select';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Search, Download, RefreshCw, Filter, AlertCircle, Info, CheckCircle, XCircle } from '@lucide/svelte';
 
@@ -108,6 +108,30 @@
 	function handleExport() {
 		console.log('Export logs');
 	}
+
+
+	const logLevelOptions = [
+		{ value: 'all', label: 'All Levels' },
+		{ value: 'error', label: 'Error' },
+		{ value: 'warning', label: 'Warning' },
+		{ value: 'info', label: 'Info' },
+		{ value: 'success', label: 'Success' }
+	];
+
+	const selectedLogLevelLabel = $derived(
+		logLevelOptions.find(option => option.value === logLevel)?.label ?? 'Select option'
+	);
+
+	const timeRangeOptions = [
+		{ value: '1h', label: 'Last 1 hour' },
+		{ value: '24h', label: 'Last 24 hours' },
+		{ value: '7d', label: 'Last 7 days' },
+		{ value: '30d', label: 'Last 30 days' }
+	];
+
+	const selectedTimeRangeLabel = $derived(
+		timeRangeOptions.find(option => option.value === timeRange)?.label ?? 'Select option'
+	);
 </script>
 
 <svelte:head>
@@ -155,32 +179,29 @@
 				</div>
 				<div class="space-y-2">
 					<h4 class="text-sm font-medium">Log Level</h4>
-					<Select bind:value={logLevel}>
-						<SelectTrigger>
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="all">All Levels</SelectItem>
-							<SelectItem value="error">Error</SelectItem>
-							<SelectItem value="warning">Warning</SelectItem>
-							<SelectItem value="info">Info</SelectItem>
-							<SelectItem value="success">Success</SelectItem>
-						</SelectContent>
-					</Select>
+					<Select.Root type="single" bind:value={logLevel}>
+				<Select.Trigger class="w-32">
+					{selectedLogLevelLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each logLevelOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 				</div>
 				<div class="space-y-2">
 					<h4 class="text-sm font-medium">Time Range</h4>
-					<Select bind:value={timeRange}>
-						<SelectTrigger>
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="1h">Last 1 hour</SelectItem>
-							<SelectItem value="24h">Last 24 hours</SelectItem>
-							<SelectItem value="7d">Last 7 days</SelectItem>
-							<SelectItem value="30d">Last 30 days</SelectItem>
-						</SelectContent>
-					</Select>
+					<Select.Root type="single" bind:value={timeRange}>
+				<Select.Trigger class="w-32">
+					{selectedTimeRangeLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each timeRangeOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 				</div>
 			</div>
 		</CardContent>

@@ -369,7 +369,8 @@
 							</Label>
 							<Badge variant="outline" class="gap-1 text-xs">
 								{#if fieldTypeIcons[field.type]}
-									<svelte:component this={fieldTypeIcons[field.type]} class="h-3 w-3" />
+									{@const IconComponent = fieldTypeIcons[field.type]}
+									<IconComponent class="h-3 w-3" />
 								{/if}
 								{CONTENT_FIELD_TYPES[field.type]}
 							</Badge>

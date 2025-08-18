@@ -344,6 +344,25 @@
 	function formatDuration(duration: number, units: 'minutes' | 'hours'): string {
 		return `${duration} ${units}`;
 	}
+
+
+	const bruteForceSettingsLockoutUnitsOptions = [
+		{ value: 'minutes', label: 'Minutes' },
+		{ value: 'hours', label: 'Hours' }
+	];
+
+	const selectedBruteForceSettingsLockoutUnitsLabel = $derived(
+		bruteForceSettingsLockoutUnitsOptions.find(option => option.value === bruteForceSettings.lockoutUnits)?.label ?? 'Select option'
+	);
+
+	const bruteForceSettingsMaxLockoutUnitsOptions = [
+		{ value: 'minutes', label: 'Minutes' },
+		{ value: 'hours', label: 'Hours' }
+	];
+
+	const selectedBruteForceSettingsMaxLockoutUnitsLabel = $derived(
+		bruteForceSettingsMaxLockoutUnitsOptions.find(option => option.value === bruteForceSettings.maxLockoutUnits)?.label ?? 'Select option'
+	);
 </script>
 
 <div class="space-y-6">
@@ -483,15 +502,16 @@
 										max="1440"
 										class="transition-colors duration-200"
 									/>
-									<Select.Root bind:value={bruteForceSettings.lockoutUnits}>
-										<Select.Trigger class="w-32">
-											<Select.Value />
-										</Select.Trigger>
-										<Select.Content>
-											<Select.Item value="minutes">Minutes</Select.Item>
-											<Select.Item value="hours">Hours</Select.Item>
-										</Select.Content>
-									</Select.Root>
+									<Select.Root type="single" bind:value={bruteForceSettings.lockoutUnits}>
+				<Select.Trigger class="w-32">
+					{selectedBruteForceSettingsLockoutUnitsLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each bruteForceSettingsLockoutUnitsOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 								</div>
 							</div>
 						</div>
@@ -537,15 +557,16 @@
 											min="1"
 											class="transition-colors duration-200"
 										/>
-										<Select.Root bind:value={bruteForceSettings.maxLockoutUnits}>
-											<Select.Trigger class="w-32">
-												<Select.Value />
-											</Select.Trigger>
-											<Select.Content>
-												<Select.Item value="minutes">Minutes</Select.Item>
-												<Select.Item value="hours">Hours</Select.Item>
-											</Select.Content>
-										</Select.Root>
+										<Select.Root type="single" bind:value={bruteForceSettings.maxLockoutUnits}>
+				<Select.Trigger class="w-32">
+					{selectedBruteForceSettingsMaxLockoutUnitsLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each bruteForceSettingsMaxLockoutUnitsOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 									</div>
 								</div>
 							{/if}

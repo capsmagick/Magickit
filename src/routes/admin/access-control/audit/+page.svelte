@@ -5,7 +5,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
-	import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '$lib/components/ui/select';
+	import * as Select from '$lib/components/ui/select';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert';
 	import { Avatar, AvatarFallback, AvatarImage } from '$lib/components/ui/avatar';
 	import { 
@@ -246,6 +246,16 @@
 			currentPage = page;
 		}
 	}
+
+
+	const successFilterOptions = [
+		{ value: 'true', label: 'Success' },
+		{ value: 'false', label: 'Failed' }
+	];
+
+	const selectedSuccessFilterLabel = $derived(
+		successFilterOptions.find(option => option.value === successFilter)?.label ?? 'Status'
+	);
 </script>
 
 <svelte:head>
@@ -322,55 +332,55 @@
 					</div>
 				</div>
 				<div class="flex flex-col sm:flex-row gap-2">
-					<Select bind:value={actionFilter}>
-						<SelectTrigger class="w-full sm:w-[140px]">
-							<SelectValue placeholder="Action" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="">All Actions</SelectItem>
+					<Select.Root bind:value={actionFilter}>
+						<Select.Trigger class="w-full sm:w-[140px]">
+							<Select.Value placeholder="Action" />
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="">All Actions</Select.Item>
 							{#each availableActions as action}
-								<SelectItem value={action}>{formatAction(action)}</SelectItem>
+								<Select.Item value={action}>{formatAction(action)}</Select.Item>
 							{/each}
-						</SelectContent>
-					</Select>
-					<Select bind:value={resourceFilter}>
-						<SelectTrigger class="w-full sm:w-[120px]">
-							<SelectValue placeholder="Resource" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="">All Resources</SelectItem>
+						</Select.Content>
+					</Select.Root>
+					<Select.Root bind:value={resourceFilter}>
+						<Select.Trigger class="w-full sm:w-[120px]">
+							<Select.Value placeholder="Resource" />
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="">All Resources</Select.Item>
 							{#each availableResources as resource}
-								<SelectItem value={resource}>{resource.charAt(0).toUpperCase() + resource.slice(1)}</SelectItem>
+								<Select.Item value={resource}>{resource.charAt(0).toUpperCase() + resource.slice(1)}</Select.Item>
 							{/each}
-						</SelectContent>
-					</Select>
-					<Select bind:value={successFilter}>
-						<SelectTrigger class="w-full sm:w-[100px]">
-							<SelectValue placeholder="Status" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="">All</SelectItem>
-							<SelectItem value="true">Success</SelectItem>
-							<SelectItem value="false">Failed</SelectItem>
-						</SelectContent>
-					</Select>
+						</Select.Content>
+					</Select.Root>
+					<Select.Root type="single" bind:value={successFilter}>
+				<Select.Trigger class="w-32">
+					{selectedSuccessFilterLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each successFilterOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 				</div>
 			</div>
 
 			<!-- Advanced Filters -->
 			<div class="flex flex-col lg:flex-row gap-4">
 				<div class="flex-1">
-					<Select bind:value={userFilter}>
-						<SelectTrigger>
-							<SelectValue placeholder="Filter by user" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="">All Users</SelectItem>
+					<Select.Root bind:value={userFilter}>
+						<Select.Trigger>
+							<Select.Value placeholder="Filter by user" />
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="">All Users</Select.Item>
 							{#each users as user}
-								<SelectItem value={user.id}>{user.name} ({user.email})</SelectItem>
+								<Select.Item value={user.id}>{user.name} ({user.email})</Select.Item>
 							{/each}
-						</SelectContent>
-					</Select>
+						</Select.Content>
+					</Select.Root>
 				</div>
 				<div class="flex flex-col sm:flex-row gap-2">
 					<div class="space-y-1">

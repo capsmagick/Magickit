@@ -107,8 +107,8 @@
 		ogType: 'article' as const,
 		twitterCard: 'summary_large_image' as const,
 		author: 'MagicKit Team',
-		publishedTime: (data.post.publishedAt || data.post.createdAt).toISOString(),
-		modifiedTime: data.post.updatedAt?.toISOString(),
+		publishedTime: data.post.publishedAt || data.post.createdAt,
+		modifiedTime: data.post.updatedAt,
 		section: 'Blog',
 		tags: data.post.tags
 	};
@@ -117,8 +117,8 @@
 		title: data.post.title,
 		description: data.post.excerpt,
 		author: 'MagicKit Team',
-		publishedTime: (data.post.publishedAt || data.post.createdAt).toISOString(),
-		modifiedTime: data.post.updatedAt?.toISOString(),
+		publishedTime: data.post.publishedAt || data.post.createdAt,
+		modifiedTime: data.post.updatedAt,
 		url: $page.url.toString(),
 		tags: data.post.tags
 	});

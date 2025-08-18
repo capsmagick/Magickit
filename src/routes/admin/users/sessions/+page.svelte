@@ -6,7 +6,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
 	import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '$lib/components/ui/dialog';
-	import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '$lib/components/ui/select';
+	import * as Select from '$lib/components/ui/select';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert';
 	import { Avatar, AvatarFallback, AvatarImage } from '$lib/components/ui/avatar';
 	import { authClient } from '$lib/auth/auth-client';
@@ -351,6 +351,27 @@
 		if (diffDays < 7) return `${diffDays}d ago`;
 		return formatDate(date);
 	}
+
+
+	const deviceFilterOptions = [
+		{ value: 'desktop', label: 'Desktop' },
+		{ value: 'mobile', label: 'Mobile' },
+		{ value: 'tablet', label: 'Tablet' }
+	];
+
+	const selectedDeviceFilterLabel = $derived(
+		deviceFilterOptions.find(option => option.value === deviceFilter)?.label ?? 'Device'
+	);
+
+	const statusFilterOptions = [
+		{ value: 'all', label: 'All Status' },
+		{ value: 'active', label: 'Active' },
+		{ value: 'expired', label: 'Expired' }
+	];
+
+	const selectedStatusFilterLabel = $derived(
+		statusFilterOptions.find(option => option.value === statusFilter)?.label ?? 'Status'
+	);
 </script>
 
 <svelte:head>
@@ -467,38 +488,37 @@
 					</div>
 				</div>
 				<div class="flex flex-col sm:flex-row gap-2">
-					<Select bind:value={userFilter}>
-						<SelectTrigger class="w-full sm:w-[160px]">
-							<SelectValue placeholder="User" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="">All Users</SelectItem>
+					<Select.Root bind:value={userFilter}>
+						<Select.Trigger class="w-full sm:w-[160px]">
+							<Select.Value placeholder="User" />
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="">All Users</Select.Item>
 							{#each users.slice(0, 20) as user}
-								<SelectItem value={user.id}>{user.name}</SelectItem>
+								<Select.Item value={user.id}>{user.name}</Select.Item>
 							{/each}
-						</SelectContent>
-					</Select>
-					<Select bind:value={deviceFilter}>
-						<SelectTrigger class="w-full sm:w-[120px]">
-							<SelectValue placeholder="Device" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="">All Devices</SelectItem>
-							<SelectItem value="desktop">Desktop</SelectItem>
-							<SelectItem value="mobile">Mobile</SelectItem>
-							<SelectItem value="tablet">Tablet</SelectItem>
-						</SelectContent>
-					</Select>
-					<Select bind:value={statusFilter}>
-						<SelectTrigger class="w-full sm:w-[120px]">
-							<SelectValue placeholder="Status" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="">All Status</SelectItem>
-							<SelectItem value="active">Active</SelectItem>
-							<SelectItem value="expired">Expired</SelectItem>
-						</SelectContent>
-					</Select>
+						</Select.Content>
+					</Select.Root>
+					<Select.Root type="single" bind:value={deviceFilter}>
+				<Select.Trigger class="w-32">
+					{selectedDeviceFilterLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each deviceFilterOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
+					<Select.Root type="single" bind:value={statusFilter}>
+				<Select.Trigger class="w-32">
+					{selectedStatusFilterLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each statusFilterOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 					<Button variant="outline" onclick={resetFilters} class="transition-colors duration-200">
 						Reset
 					</Button>

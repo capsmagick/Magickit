@@ -244,6 +244,40 @@
 	function formatRecipients(recipients: string[]): string {
 		return recipients.map(r => r.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())).join(', ');
 	}
+
+
+	const newNotificationTypeOptions = [
+		{ value: 'info', label: 'Info' },
+		{ value: 'warning', label: 'Warning' },
+		{ value: 'success', label: 'Success' },
+		{ value: 'error', label: 'Error' }
+	];
+
+	const selectedNewNotificationTypeLabel = $derived(
+		newNotificationTypeOptions.find(option => option.value === newNotification.type)?.label ?? 'Select type'
+	);
+
+	const newNotificationRecipientsOptions = [
+		{ value: 'all_users', label: `All Users (${getRecipientCount('all_users')})` },
+		{ value: 'premium_users', label: `Premium Users (${getRecipientCount('premium_users')})` },
+		{ value: 'active_users', label: `Active Users (${getRecipientCount('active_users')})` },
+		{ value: 'admin_users', label: `Admin Users (${getRecipientCount('admin_users')})` }
+	];
+
+	const selectedNewNotificationRecipientsLabel = $derived(
+		newNotificationRecipientsOptions.find(option => option.value === newNotification.recipients)?.label ?? 'Select recipients'
+	);
+
+	const newNotificationPriorityOptions = [
+		{ value: 'all', label: 'All Priority' },
+		{ value: 'low', label: 'Low' },
+		{ value: 'high', label: 'High' },
+		{ value: 'normal', label: 'Normal' }
+	];
+
+	const selectedNewNotificationPriorityLabel = $derived(
+		newNotificationPriorityOptions.find(option => option.value === newNotification.priority)?.label ?? 'Select priority'
+	);
 </script>
 
 <div class="space-y-6">
@@ -469,17 +503,16 @@
 					</div>
 					<div class="space-y-2">
 						<Label for="type">Type</Label>
-						<Select.Root bind:selected={newNotification.type}>
-							<Select.Trigger>
-								<Select.Value placeholder="Select type" />
-							</Select.Trigger>
-							<Select.Content>
-								<Select.Item value="info">Info</Select.Item>
-								<Select.Item value="warning">Warning</Select.Item>
-								<Select.Item value="success">Success</Select.Item>
-								<Select.Item value="error">Error</Select.Item>
-							</Select.Content>
-						</Select.Root>
+						<Select.Root type="single" bind:value={newNotification.type}>
+				<Select.Trigger class="w-32">
+					{selectedNewNotificationTypeLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each newNotificationTypeOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 					</div>
 				</div>
 
@@ -500,30 +533,29 @@
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div class="space-y-2">
 						<Label for="recipients">Recipients</Label>
-						<Select.Root bind:selected={newNotification.recipients}>
-							<Select.Trigger>
-								<Select.Value placeholder="Select recipients" />
-							</Select.Trigger>
-							<Select.Content>
-								<Select.Item value="all_users">All Users ({getRecipientCount('all_users')})</Select.Item>
-								<Select.Item value="premium_users">Premium Users ({getRecipientCount('premium_users')})</Select.Item>
-								<Select.Item value="active_users">Active Users ({getRecipientCount('active_users')})</Select.Item>
-								<Select.Item value="admin_users">Admin Users ({getRecipientCount('admin_users')})</Select.Item>
-							</Select.Content>
-						</Select.Root>
+						<Select.Root type="single" bind:value={newNotification.recipients}>
+				<Select.Trigger class="w-32">
+					{selectedNewNotificationRecipientsLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each newNotificationRecipientsOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 					</div>
 					<div class="space-y-2">
 						<Label for="priority">Priority</Label>
-						<Select.Root bind:selected={newNotification.priority}>
-							<Select.Trigger>
-								<Select.Value placeholder="Select priority" />
-							</Select.Trigger>
-							<Select.Content>
-								<Select.Item value="high">High</Select.Item>
-								<Select.Item value="normal">Normal</Select.Item>
-								<Select.Item value="low">Low</Select.Item>
-							</Select.Content>
-						</Select.Root>
+						<Select.Root type="single" bind:value={newNotification.priority}>
+				<Select.Trigger class="w-32">
+					{selectedNewNotificationPriorityLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each newNotificationPriorityOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 					</div>
 				</div>
 

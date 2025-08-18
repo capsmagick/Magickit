@@ -54,7 +54,8 @@
 		{
 			id: 'FB-001',
 			title: 'Great user interface improvements',
-			message: 'The new admin interface is much more intuitive and user-friendly. The navigation is clearer and the overall design feels modern. Really appreciate the dark mode option!',
+			message:
+				'The new admin interface is much more intuitive and user-friendly. The navigation is clearer and the overall design feels modern. Really appreciate the dark mode option!',
 			rating: 5,
 			category: 'ui-ux',
 			user: {
@@ -65,7 +66,8 @@
 			createdAt: new Date('2024-01-20T12:00:00'),
 			status: 'reviewed',
 			response: {
-				message: 'Thank you for the positive feedback! We\'re glad you\'re enjoying the new interface.',
+				message:
+					"Thank you for the positive feedback! We're glad you're enjoying the new interface.",
 				respondedBy: 'admin@example.com',
 				respondedAt: new Date('2024-01-20T15:30:00')
 			},
@@ -74,7 +76,8 @@
 		{
 			id: 'FB-002',
 			title: 'Could use more reporting features',
-			message: 'The system works well overall, but it would be great to have more detailed reporting capabilities. Specifically, I\'d love to see analytics on user engagement and custom report builders.',
+			message:
+				"The system works well overall, but it would be great to have more detailed reporting capabilities. Specifically, I'd love to see analytics on user engagement and custom report builders.",
 			rating: 4,
 			category: 'features',
 			user: {
@@ -90,7 +93,8 @@
 		{
 			id: 'FB-003',
 			title: 'Performance issues on mobile',
-			message: 'The app is quite slow on mobile devices, especially when loading large datasets. It would be great if this could be optimized for better mobile performance.',
+			message:
+				'The app is quite slow on mobile devices, especially when loading large datasets. It would be great if this could be optimized for better mobile performance.',
 			rating: 2,
 			category: 'performance',
 			user: {
@@ -101,7 +105,8 @@
 			createdAt: new Date('2024-01-18T10:30:00'),
 			status: 'in_progress',
 			response: {
-				message: 'We\'re aware of the mobile performance issues and are working on optimizations. Expect improvements in the next release.',
+				message:
+					"We're aware of the mobile performance issues and are working on optimizations. Expect improvements in the next release.",
 				respondedBy: 'admin@example.com',
 				respondedAt: new Date('2024-01-18T14:00:00')
 			},
@@ -110,7 +115,8 @@
 		{
 			id: 'FB-004',
 			title: 'Excellent customer support',
-			message: 'Had an issue with my account and the support team resolved it quickly and professionally. Very impressed with the level of service.',
+			message:
+				'Had an issue with my account and the support team resolved it quickly and professionally. Very impressed with the level of service.',
 			rating: 5,
 			category: 'support',
 			user: {
@@ -121,7 +127,7 @@
 			createdAt: new Date('2024-01-17T14:20:00'),
 			status: 'reviewed',
 			response: {
-				message: 'Thank you for the kind words! We\'re always here to help.',
+				message: "Thank you for the kind words! We're always here to help.",
 				respondedBy: 'admin@example.com',
 				respondedAt: new Date('2024-01-17T16:00:00')
 			},
@@ -130,7 +136,8 @@
 		{
 			id: 'FB-005',
 			title: 'Login process is confusing',
-			message: 'The login process has too many steps and the password requirements are not clear. It took me several attempts to create an account.',
+			message:
+				'The login process has too many steps and the password requirements are not clear. It took me several attempts to create an account.',
 			rating: 2,
 			category: 'authentication',
 			user: {
@@ -163,38 +170,41 @@
 
 	// Filter feedback based on search and filters
 	const filteredFeedback = $derived.by(() => {
-		return feedback.filter(item => {
-			const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+		return feedback.filter((item) => {
+			const matchesSearch =
+				item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
 				item.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
 				item.user.name.toLowerCase().includes(searchTerm.toLowerCase());
-			
+
 			const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
 			const matchesRating = ratingFilter === 'all' || item.rating.toString() === ratingFilter;
 			const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
-			
+
 			return matchesSearch && matchesStatus && matchesRating && matchesCategory;
 		});
 	});
 
 	// Get unique categories
 	const categories = $derived.by(() => {
-		const cats = [...new Set(feedback.map(item => item.category))];
+		const cats = [...new Set(feedback.map((item) => item.category))];
 		return cats.sort();
 	});
 
 	// Calculate analytics
 	const analytics = $derived.by(() => {
 		const totalFeedback = feedback.length;
-		const avgRating = totalFeedback > 0 
-			? (feedback.reduce((sum, item) => sum + item.rating, 0) / totalFeedback).toFixed(1)
-			: '0';
-		const positiveCount = feedback.filter(item => item.rating >= 4).length;
-		const negativeCount = feedback.filter(item => item.rating <= 2).length;
-		const pendingCount = feedback.filter(item => item.status === 'pending').length;
-		const responseRate = totalFeedback > 0 
-			? ((feedback.filter(item => item.response).length / totalFeedback) * 100).toFixed(1)
-			: '0';
-		
+		const avgRating =
+			totalFeedback > 0
+				? (feedback.reduce((sum, item) => sum + item.rating, 0) / totalFeedback).toFixed(1)
+				: '0';
+		const positiveCount = feedback.filter((item) => item.rating >= 4).length;
+		const negativeCount = feedback.filter((item) => item.rating <= 2).length;
+		const pendingCount = feedback.filter((item) => item.status === 'pending').length;
+		const responseRate =
+			totalFeedback > 0
+				? ((feedback.filter((item) => item.response).length / totalFeedback) * 100).toFixed(1)
+				: '0';
+
 		return {
 			totalFeedback,
 			avgRating,
@@ -220,18 +230,14 @@
 		selectedFeedback.status = 'reviewed';
 
 		// Update the feedback in the main array
-		feedback = feedback.map((item) =>
-			item.id === selectedFeedback.id ? selectedFeedback : item
-		);
+		feedback = feedback.map((item) => (item.id === selectedFeedback.id ? selectedFeedback : item));
 
 		newResponse.message = '';
 		showResponseDialog = false;
 	}
 
 	function updateFeedbackStatus(feedbackId: string, status: string) {
-		feedback = feedback.map((item) =>
-			item.id === feedbackId ? { ...item, status } : item
-		);
+		feedback = feedback.map((item) => (item.id === feedbackId ? { ...item, status } : item));
 	}
 
 	function deleteFeedback(feedbackId: string) {
@@ -262,13 +268,13 @@
 	function getCategoryBadge(category: string) {
 		const colors: Record<string, string> = {
 			'ui-ux': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-			'features': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-			'performance': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
-			'support': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
-			'authentication': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
-			'general': 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300'
+			features: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+			performance: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+			support: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
+			authentication: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+			general: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300'
 		};
-		
+
 		return colors[category] || colors['general'];
 	}
 
@@ -288,6 +294,47 @@
 		ratingFilter = 'all';
 		categoryFilter = 'all';
 	}
+
+	const statusFilterOptions = [
+		{ value: 'all', label: 'All Status' },
+		{ value: 'pending', label: 'Pending' },
+		{ value: 'reviewed', label: 'Reviewed' },
+		{ value: 'in_progress', label: 'In Progress' }
+	];
+
+	const selectedStatusFilterLabel = $derived(
+		statusFilterOptions.find((option) => option.value === statusFilter)?.label ?? 'Status'
+	);
+
+	const ratingFilterOptions = [
+		{ value: 'all', label: 'All Ratings' },
+		{ value: '5', label: '5 Stars' },
+		{ value: '4', label: '4 Stars' },
+		{ value: '3', label: '3 Stars' },
+		{ value: '2', label: '2 Stars' },
+		{ value: '1', label: '1 Star' }
+	];
+
+	const selectedRatingFilterLabel = $derived(
+		ratingFilterOptions.find((option) => option.value === ratingFilter)?.label ?? 'Rating'
+	);
+
+	const categoryFilterOptions = [{ value: 'all', label: 'All Categories' }];
+
+	const selectedCategoryFilterLabel = $derived(
+		categoryFilterOptions.find((option) => option.value === categoryFilter)?.label ?? 'Category'
+	);
+
+	const itemStatusOptions = [
+		{ value: 'all', label: 'All Status' },
+		{ value: 'pending', label: 'Pending' },
+		{ value: 'reviewed', label: 'Reviewed' },
+		{ value: 'in_progress', label: 'In Progress' }
+	];
+
+	const selectedItemStatusLabel = $derived(
+		itemStatusOptions.find((option) => option.value === item.status)?.label ?? 'Select option'
+	);
 </script>
 
 <div class="space-y-6">
@@ -298,7 +345,7 @@
 	</div>
 
 	<!-- Analytics Cards -->
-	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+	<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-6">
 		<Card.Root>
 			<Card.Content class="p-4">
 				<div class="flex items-center justify-between">
@@ -370,51 +417,46 @@
 	<!-- Search and Filters -->
 	<Card.Root>
 		<Card.Content class="p-4">
-			<div class="flex flex-col sm:flex-row gap-4">
+			<div class="flex flex-col gap-4 sm:flex-row">
 				<div class="flex-1">
 					<div class="relative">
-						<Search class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-						<Input 
-							type="search" 
-							placeholder="Search feedback..." 
-							class="pl-8 transition-colors duration-200" 
-							bind:value={searchTerm} 
+						<Search class="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
+						<Input
+							type="search"
+							placeholder="Search feedback..."
+							class="pl-8 transition-colors duration-200"
+							bind:value={searchTerm}
 						/>
 					</div>
 				</div>
 				<div class="flex gap-2">
-					<Select.Root bind:value={statusFilter}>
+					<Select.Root type="single" bind:value={statusFilter}>
 						<Select.Trigger class="w-32">
-							<Select.Value placeholder="Status" />
+							{selectedStatusFilterLabel}
 						</Select.Trigger>
 						<Select.Content>
-							<Select.Item value="all">All Status</Select.Item>
-							<Select.Item value="pending">Pending</Select.Item>
-							<Select.Item value="in_progress">In Progress</Select.Item>
-							<Select.Item value="reviewed">Reviewed</Select.Item>
+							{#each statusFilterOptions as option}
+								<Select.Item value={option.value}>{option.label}</Select.Item>
+							{/each}
 						</Select.Content>
 					</Select.Root>
-					<Select.Root bind:value={ratingFilter}>
+					<Select.Root type="single" bind:value={ratingFilter}>
 						<Select.Trigger class="w-32">
-							<Select.Value placeholder="Rating" />
+							{selectedRatingFilterLabel}
 						</Select.Trigger>
 						<Select.Content>
-							<Select.Item value="all">All Ratings</Select.Item>
-							<Select.Item value="5">5 Stars</Select.Item>
-							<Select.Item value="4">4 Stars</Select.Item>
-							<Select.Item value="3">3 Stars</Select.Item>
-							<Select.Item value="2">2 Stars</Select.Item>
-							<Select.Item value="1">1 Star</Select.Item>
+							{#each ratingFilterOptions as option}
+								<Select.Item value={option.value}>{option.label}</Select.Item>
+							{/each}
 						</Select.Content>
 					</Select.Root>
-					<Select.Root bind:value={categoryFilter}>
+					<Select.Root type="single" bind:value={categoryFilter}>
 						<Select.Trigger class="w-32">
-							<Select.Value placeholder="Category" />
+							{selectedCategoryFilterLabel}
 						</Select.Trigger>
 						<Select.Content>
-							<Select.Item value="all">All Categories</Select.Item>
-							{#each categories as category}
-								<Select.Item value={category}>{category}</Select.Item>
+							{#each categoryFilterOptions as option}
+								<Select.Item value={option.value}>{option.label}</Select.Item>
 							{/each}
 						</Select.Content>
 					</Select.Root>
@@ -434,13 +476,16 @@
 					<Loader2 class="h-8 w-8 animate-spin text-primary" />
 				</div>
 			{:else if filteredFeedback.length === 0}
-				<div class="text-center py-12 space-y-4">
-					<MessageCircle class="h-12 w-12 mx-auto text-muted-foreground" />
+				<div class="space-y-4 py-12 text-center">
+					<MessageCircle class="mx-auto h-12 w-12 text-muted-foreground" />
 					<div class="space-y-2">
 						<h3 class="text-lg font-semibold">No feedback found</h3>
 						<p class="text-muted-foreground">
-							{searchTerm || statusFilter !== 'all' || ratingFilter !== 'all' || categoryFilter !== 'all'
-								? 'Try adjusting your search or filters.' 
+							{searchTerm ||
+							statusFilter !== 'all' ||
+							ratingFilter !== 'all' ||
+							categoryFilter !== 'all'
+								? 'Try adjusting your search or filters.'
 								: 'No user feedback has been submitted yet.'}
 						</p>
 					</div>
@@ -462,12 +507,12 @@
 						{#each filteredFeedback as item}
 							<Table.Row class="transition-colors duration-200 hover:bg-muted/50">
 								<Table.Cell>
-									<div class="space-y-2 max-w-md">
+									<div class="max-w-md space-y-2">
 										<p class="font-medium">{item.title}</p>
-										<p class="text-sm text-muted-foreground line-clamp-2">{item.message}</p>
+										<p class="line-clamp-2 text-sm text-muted-foreground">{item.message}</p>
 										{#if item.response}
-											<div class="bg-muted/50 rounded p-2 text-sm">
-												<p class="font-medium text-xs text-muted-foreground mb-1">Response:</p>
+											<div class="rounded bg-muted/50 p-2 text-sm">
+												<p class="mb-1 text-xs font-medium text-muted-foreground">Response:</p>
 												<p class="line-clamp-2">{item.response.message}</p>
 											</div>
 										{/if}
@@ -475,11 +520,13 @@
 								</Table.Cell>
 								<Table.Cell>
 									<div class="flex items-center gap-2">
-										<div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+										<div
+											class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10"
+										>
 											<User class="h-4 w-4 text-primary" />
 										</div>
 										<div class="space-y-1">
-											<p class="font-medium text-sm">{item.user.name}</p>
+											<p class="text-sm font-medium">{item.user.name}</p>
 											<p class="text-sm text-muted-foreground">{item.user.email}</p>
 										</div>
 									</div>
@@ -501,16 +548,13 @@
 									</div>
 								</Table.Cell>
 								<Table.Cell>
-									<Badge 
-										class={getCategoryBadge(item.category)}
-										variant="outline"
-									>
+									<Badge class={getCategoryBadge(item.category)} variant="outline">
 										{item.category}
 									</Badge>
 								</Table.Cell>
 								<Table.Cell>
 									{@const statusInfo = getStatusBadge(item.status)}
-									<Badge variant={statusInfo.variant} class="flex items-center gap-1 w-fit">
+									<Badge variant={statusInfo.variant} class="flex w-fit items-center gap-1">
 										<statusInfo.icon class="h-3 w-3" />
 										{statusInfo.text}
 									</Badge>
@@ -523,31 +567,28 @@
 								</Table.Cell>
 								<Table.Cell class="text-right">
 									<div class="flex items-center justify-end gap-2">
-										<Button 
-											variant="ghost" 
-											size="icon" 
+										<Button
+											variant="ghost"
+											size="icon"
 											onclick={() => openResponseDialog(item)}
 											aria-label="Respond to feedback"
 											class="transition-colors duration-200"
 										>
 											<MessageSquare class="h-4 w-4" />
 										</Button>
-										<Select.Root
-											bind:value={item.status}
-											onValueChange={(value: string) => value && updateFeedbackStatus(item.id, value)}
-										>
+										<Select.Root type="single" bind:value={item.status}>
 											<Select.Trigger class="w-32">
-												<Select.Value />
+												{selectedItemStatusLabel}
 											</Select.Trigger>
 											<Select.Content>
-												<Select.Item value="pending">Pending</Select.Item>
-												<Select.Item value="in_progress">In Progress</Select.Item>
-												<Select.Item value="reviewed">Reviewed</Select.Item>
+												{#each itemStatusOptions as option}
+													<Select.Item value={option.value}>{option.label}</Select.Item>
+												{/each}
 											</Select.Content>
 										</Select.Root>
-										<Button 
-											variant="ghost" 
-											size="icon" 
+										<Button
+											variant="ghost"
+											size="icon"
 											onclick={() => deleteFeedback(item.id)}
 											aria-label="Delete feedback"
 											class="transition-colors duration-200 hover:text-destructive"
@@ -567,13 +608,16 @@
 
 <!-- Response Dialog -->
 <Dialog bind:open={showResponseDialog}>
-	<DialogContent class="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+	<DialogContent class="max-h-[80vh] overflow-y-auto sm:max-w-2xl">
 		<DialogHeader>
 			<DialogTitle>
-				{selectedFeedback?.response ? 'Update Response' : 'Respond to Feedback'} - {selectedFeedback?.id || 'Unknown'}
+				{selectedFeedback?.response ? 'Update Response' : 'Respond to Feedback'} - {selectedFeedback?.id ||
+					'Unknown'}
 			</DialogTitle>
 			<DialogDescription>
-				{selectedFeedback?.response ? 'Update your response to this feedback.' : 'Add a response to this user feedback.'}
+				{selectedFeedback?.response
+					? 'Update your response to this feedback.'
+					: 'Add a response to this user feedback.'}
 			</DialogDescription>
 		</DialogHeader>
 
@@ -581,15 +625,13 @@
 			<div class="space-y-6">
 				<!-- Feedback Details -->
 				<div class="rounded-lg border bg-muted/50 p-4">
-					<div class="flex items-start justify-between mb-3">
+					<div class="mb-3 flex items-start justify-between">
 						<h4 class="font-medium">{selectedFeedback.title}</h4>
 						<div class="flex items-center gap-2">
 							<div class="flex items-center">
 								{#each getRatingStars(selectedFeedback.rating) as isStar}
 									<Star
-										class="h-4 w-4 {isStar
-											? 'fill-current text-yellow-500'
-											: 'text-gray-300'}"
+										class="h-4 w-4 {isStar ? 'fill-current text-yellow-500' : 'text-gray-300'}"
 									/>
 								{/each}
 							</div>
@@ -598,14 +640,11 @@
 							</span>
 						</div>
 					</div>
-					<p class="text-sm text-muted-foreground mb-3">{selectedFeedback.message}</p>
+					<p class="mb-3 text-sm text-muted-foreground">{selectedFeedback.message}</p>
 					<div class="flex items-center gap-4 text-xs text-muted-foreground">
 						<span>From: {selectedFeedback.user.name} ({selectedFeedback.user.email})</span>
 						<span>Date: {selectedFeedback.createdAt.toLocaleDateString()}</span>
-						<Badge 
-							class={getCategoryBadge(selectedFeedback.category)}
-							variant="outline"
-						>
+						<Badge class={getCategoryBadge(selectedFeedback.category)} variant="outline">
 							{selectedFeedback.category}
 						</Badge>
 					</div>
@@ -615,7 +654,7 @@
 				{#if selectedFeedback.response}
 					<div>
 						<h4 class="mb-3 font-medium">Current Response</h4>
-						<div class="rounded-lg border p-3 bg-background">
+						<div class="rounded-lg border bg-background p-3">
 							<div class="mb-2 flex items-center justify-between">
 								<span class="text-sm font-medium">{selectedFeedback.response.respondedBy}</span>
 								<span class="text-xs text-muted-foreground">
@@ -645,7 +684,7 @@
 							placeholder="Type your response here..."
 							rows={4}
 							required
-							class="transition-colors duration-200 resize-none"
+							class="resize-none transition-colors duration-200"
 						/>
 					</div>
 					<DialogFooter>

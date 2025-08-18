@@ -7,7 +7,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
 	import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '$lib/components/ui/dialog';
-	import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '$lib/components/ui/select';
+	import * as Select from '$lib/components/ui/select';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert';
 	import { Avatar, AvatarFallback, AvatarImage } from '$lib/components/ui/avatar';
 	import { authClient } from '$lib/auth/auth-client';
@@ -343,6 +343,44 @@
 		}
 		return { variant: 'secondary' as const, text: 'User' };
 	}
+
+
+	const roleFilterOptions = [
+		{ value: 'admin', label: 'Admin' },
+		{ value: 'user', label: 'User' }
+	];
+
+	const selectedRoleFilterLabel = $derived(
+		roleFilterOptions.find(option => option.value === roleFilter)?.label ?? 'Role'
+	);
+
+	const statusFilterOptions = [
+		{ value: 'all', label: 'All Status' },
+		{ value: 'active', label: 'Active' },
+		{ value: 'banned', label: 'Banned' }
+	];
+
+	const selectedStatusFilterLabel = $derived(
+		statusFilterOptions.find(option => option.value === statusFilter)?.label ?? 'Status'
+	);
+
+	const formDataRoleOptions = [
+		{ value: 'user', label: 'User' },
+		{ value: 'admin', label: 'Admin' }
+	];
+
+	const selectedFormDataRoleLabel = $derived(
+		formDataRoleOptions.find(option => option.value === formData.role)?.label ?? 'Select role'
+	);
+
+	const selectedUserRoleOptions = [
+		{ value: 'user', label: 'User' },
+		{ value: 'admin', label: 'Admin' }
+	];
+
+	const selectedSelectedUserRoleLabel = $derived(
+		selectedUserRoleOptions.find(option => option.value === selectedUser.role)?.label ?? 'Select option'
+	);
 </script>
 
 <svelte:head>
@@ -393,26 +431,26 @@
 					</div>
 				</div>
 				<div class="flex flex-col sm:flex-row gap-2">
-					<Select bind:value={roleFilter}>
-						<SelectTrigger class="w-full sm:w-[120px]">
-							<SelectValue placeholder="Role" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="">All Roles</SelectItem>
-							<SelectItem value="admin">Admin</SelectItem>
-							<SelectItem value="user">User</SelectItem>
-						</SelectContent>
-					</Select>
-					<Select bind:value={statusFilter}>
-						<SelectTrigger class="w-full sm:w-[120px]">
-							<SelectValue placeholder="Status" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="">All Status</SelectItem>
-							<SelectItem value="active">Active</SelectItem>
-							<SelectItem value="banned">Banned</SelectItem>
-						</SelectContent>
-					</Select>
+					<Select.Root type="single" bind:value={roleFilter}>
+				<Select.Trigger class="w-32">
+					{selectedRoleFilterLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each roleFilterOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
+					<Select.Root type="single" bind:value={statusFilter}>
+				<Select.Trigger class="w-32">
+					{selectedStatusFilterLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each statusFilterOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 					<Button variant="outline" onclick={resetFilters} class="transition-colors duration-200">
 						Reset
 					</Button>
@@ -647,15 +685,16 @@
 			
 			<div class="space-y-2">
 				<Label for="create-role" class="text-sm font-medium">Role</Label>
-				<Select bind:value={formData.role}>
-					<SelectTrigger>
-						<SelectValue placeholder="Select role" />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="user">User</SelectItem>
-						<SelectItem value="admin">Admin</SelectItem>
-					</SelectContent>
-				</Select>
+				<Select.Root type="single" bind:value={formData.role}>
+				<Select.Trigger class="w-32">
+					{selectedFormDataRoleLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each formDataRoleOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 			</div>
 		</div>
 
@@ -744,15 +783,16 @@
 
 				<!-- Quick Actions -->
 				<div class="flex gap-2">
-					<Select bind:value={selectedUser.role} onValueChange={(value) => handleSetUserRole(selectedUser.id, value)}>
-						<SelectTrigger class="w-[140px]">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="user">User</SelectItem>
-							<SelectItem value="admin">Admin</SelectItem>
-						</SelectContent>
-					</Select>
+					<Select.Root type="single" bind:value={selectedUser.role}>
+						<Select.Trigger class="w-32">
+							{selectedSelectedUserRoleLabel}
+						</Select.Trigger>
+						<Select.Content>
+							{#each selectedUserRoleOptions as option}
+								<Select.Item value={option.value}>{option.label}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
 					
 					{#if selectedUser.banned}
 						<Button 

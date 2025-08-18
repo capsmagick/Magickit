@@ -2,11 +2,24 @@
 	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
-	import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '$lib/components/ui/select';
+	import * as Select from '$lib/components/ui/select';
 	import { Activity, Cpu, MemoryStick, HardDrive, Wifi, RefreshCw } from '@lucide/svelte';
 
 	let timeRange = $state('1h');
 	let isRefreshing = $state(false);
+
+	// Time range options for the select
+	const timeRangeOptions = [
+		{ value: '5m', label: 'Last 5 min' },
+		{ value: '1h', label: 'Last 1 hour' },
+		{ value: '24h', label: 'Last 24 hours' },
+		{ value: '7d', label: 'Last 7 days' }
+	];
+
+	// Get the display label for the selected time range
+	const selectedTimeRangeLabel = $derived(
+		timeRangeOptions.find((option) => option.value === timeRange)?.label ?? 'Select period'
+	);
 
 	let monitoringData = $state({
 		cpu: {
@@ -92,7 +105,7 @@
 	async function handleRefresh() {
 		isRefreshing = true;
 		// Simulate API call
-		await new Promise(resolve => setTimeout(resolve, 1000));
+		await new Promise((resolve) => setTimeout(resolve, 1000));
 		// Update with new random data
 		monitoringData.cpu.current = Math.floor(Math.random() * 100);
 		monitoringData.memory.percentage = Math.floor(Math.random() * 100);
@@ -106,24 +119,27 @@
 </svelte:head>
 
 <div class="space-y-6">
-	<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+	<div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
 		<div class="space-y-2">
 			<h1 class="text-2xl font-bold">Real-time Monitoring</h1>
 			<p class="text-muted-foreground">Monitor system resources and performance metrics</p>
 		</div>
 		<div class="flex items-center gap-2">
-			<Select bind:value={timeRange}>
-				<SelectTrigger class="w-32">
-					<SelectValue />
-				</SelectTrigger>
-				<SelectContent>
-					<SelectItem value="5m">Last 5 min</SelectItem>
-					<SelectItem value="1h">Last 1 hour</SelectItem>
-					<SelectItem value="24h">Last 24 hours</SelectItem>
-					<SelectItem value="7d">Last 7 days</SelectItem>
-				</SelectContent>
-			</Select>
-			<Button onclick={handleRefresh} disabled={isRefreshing} class="transition-colors duration-200">
+			<Select.Root type="single" bind:value={timeRange}>
+				<Select.Trigger class="w-32">
+					{selectedTimeRangeLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each timeRangeOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
+			<Button
+				onclick={handleRefresh}
+				disabled={isRefreshing}
+				class="transition-colors duration-200"
+			>
 				<RefreshCw class="mr-2 h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
 				Refresh
 			</Button>
@@ -131,7 +147,7 @@
 	</div>
 
 	<!-- Resource Monitoring Cards -->
-	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+	<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
 		<!-- CPU Usage -->
 		<Card>
 			<CardHeader class="pb-2">
@@ -142,13 +158,15 @@
 			</CardHeader>
 			<CardContent class="space-y-3">
 				<div class="text-2xl font-bold">{monitoringData.cpu.current}%</div>
-				<div class="w-full bg-muted rounded-full h-2">
-					<div 
-						class="h-2 rounded-full transition-all duration-300 {getProgressColor(monitoringData.cpu.current)}"
+				<div class="h-2 w-full rounded-full bg-muted">
+					<div
+						class="h-2 rounded-full transition-all duration-300 {getProgressColor(
+							monitoringData.cpu.current
+						)}"
 						style="width: {monitoringData.cpu.current}%"
 					></div>
 				</div>
-				<div class="text-xs text-muted-foreground space-y-1">
+				<div class="space-y-1 text-xs text-muted-foreground">
 					<div class="flex justify-between">
 						<span>Average:</span>
 						<span>{monitoringData.cpu.average}%</span>
@@ -171,9 +189,11 @@
 			</CardHeader>
 			<CardContent class="space-y-3">
 				<div class="text-2xl font-bold">{monitoringData.memory.percentage}%</div>
-				<div class="w-full bg-muted rounded-full h-2">
-					<div 
-						class="h-2 rounded-full transition-all duration-300 {getProgressColor(monitoringData.memory.percentage)}"
+				<div class="h-2 w-full rounded-full bg-muted">
+					<div
+						class="h-2 rounded-full transition-all duration-300 {getProgressColor(
+							monitoringData.memory.percentage
+						)}"
 						style="width: {monitoringData.memory.percentage}%"
 					></div>
 				</div>
@@ -200,9 +220,11 @@
 			</CardHeader>
 			<CardContent class="space-y-3">
 				<div class="text-2xl font-bold">{monitoringData.disk.percentage}%</div>
-				<div class="w-full bg-muted rounded-full h-2">
-					<div 
-						class="h-2 rounded-full transition-all duration-300 {getProgressColor(monitoringData.disk.percentage)}"
+				<div class="h-2 w-full rounded-full bg-muted">
+					<div
+						class="h-2 rounded-full transition-all duration-300 {getProgressColor(
+							monitoringData.disk.percentage
+						)}"
 						style="width: {monitoringData.disk.percentage}%"
 					></div>
 				</div>
@@ -239,9 +261,7 @@
 					</div>
 				</div>
 				<div class="pt-2">
-					<Badge variant="outline" class="text-xs">
-						Status: Normal
-					</Badge>
+					<Badge variant="outline" class="text-xs">Status: Normal</Badge>
 				</div>
 			</CardContent>
 		</Card>
@@ -262,7 +282,11 @@
 			<div class="space-y-3">
 				{#each monitoringData.alerts as alert}
 					{@const alertBadge = getAlertBadge(alert.type)}
-					<div class="flex items-start gap-3 p-3 border rounded-lg {alert.resolved ? 'opacity-60' : ''}">
+					<div
+						class="flex items-start gap-3 rounded-lg border p-3 {alert.resolved
+							? 'opacity-60'
+							: ''}"
+					>
 						<Badge variant={alertBadge.variant} class="text-xs">
 							{alertBadge.text}
 						</Badge>

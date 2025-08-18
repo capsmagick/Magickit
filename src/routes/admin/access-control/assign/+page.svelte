@@ -7,7 +7,7 @@
 	import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
 	import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '$lib/components/ui/dialog';
 	import { Label } from '$lib/components/ui/label';
-	import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '$lib/components/ui/select';
+	import * as Select from '$lib/components/ui/select';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert';
 	import { Avatar, AvatarFallback, AvatarImage } from '$lib/components/ui/avatar';
@@ -320,6 +320,15 @@
 	function formatDate(date: string): string {
 		return new Date(date).toLocaleDateString();
 	}
+
+
+	const roleFilterOptions = [
+		{ value: 'no-role', label: 'No Role Assigned' }
+	];
+
+	const selectedRoleFilterLabel = $derived(
+		roleFilterOptions.find(option => option.value === roleFilter)?.label ?? 'Filter by role'
+	);
 </script>
 
 <svelte:head>
@@ -377,18 +386,16 @@
 					</div>
 				</div>
 				<div class="flex flex-col sm:flex-row gap-2">
-					<Select bind:value={roleFilter}>
-						<SelectTrigger class="w-full sm:w-[160px]">
-							<SelectValue placeholder="Filter by role" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="">All Users</SelectItem>
-							<SelectItem value="no-role">No Role Assigned</SelectItem>
-							{#each roles as role}
-								<SelectItem value={role._id}>{role.name}</SelectItem>
-							{/each}
-						</SelectContent>
-					</Select>
+					<Select.Root type="single" bind:value={roleFilter}>
+				<Select.Trigger class="w-32">
+					{selectedRoleFilterLabel}
+				</Select.Trigger>
+				<Select.Content>
+					{#each roleFilterOptions as option}
+						<Select.Item value={option.value}>{option.label}</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
 					<Button variant="outline" onclick={resetFilters} class="transition-colors duration-200">
 						Reset
 					</Button>
@@ -523,16 +530,16 @@
 		<div class="space-y-4">
 			<div class="space-y-2">
 				<Label for="assign-role" class="text-sm font-medium">Role *</Label>
-				<Select bind:value={assignmentData.roleId}>
-					<SelectTrigger>
-						<SelectValue placeholder="Select role" />
-					</SelectTrigger>
-					<SelectContent>
+				<Select.Root bind:value={assignmentData.roleId}>
+					<Select.Trigger>
+						<Select.Value placeholder="Select role" />
+					</Select.Trigger>
+					<Select.Content>
 						{#each roles as role}
-							<SelectItem value={role._id}>{role.name}</SelectItem>
+							<Select.Item value={role._id}>{role.name}</Select.Item>
 						{/each}
-					</SelectContent>
-				</Select>
+					</Select.Content>
+				</Select.Root>
 			</div>
 			
 			<div class="space-y-2">
@@ -585,16 +592,16 @@
 		<div class="space-y-4">
 			<div class="space-y-2">
 				<Label for="bulk-assign-role" class="text-sm font-medium">Role *</Label>
-				<Select bind:value={assignmentData.roleId}>
-					<SelectTrigger>
-						<SelectValue placeholder="Select role" />
-					</SelectTrigger>
-					<SelectContent>
+				<Select.Root bind:value={assignmentData.roleId}>
+					<Select.Trigger>
+						<Select.Value placeholder="Select role" />
+					</Select.Trigger>
+					<Select.Content>
 						{#each roles as role}
-							<SelectItem value={role._id}>{role.name}</SelectItem>
+							<Select.Item value={role._id}>{role.name}</Select.Item>
 						{/each}
-					</SelectContent>
-				</Select>
+					</Select.Content>
+				</Select.Root>
 			</div>
 			
 			<div class="space-y-2">

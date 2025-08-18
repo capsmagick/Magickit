@@ -9,6 +9,12 @@ export default defineConfig({
 		sveltekit(),
 		devtoolsJson()
 	],
+	define: {
+		global: 'globalThis'
+	},
+	optimizeDeps: {
+		exclude: ['mongodb']
+	},
 	test: {
 		expect: { requireAssertions: true },
 		projects: [
