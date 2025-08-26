@@ -70,11 +70,13 @@
 	/* Responsive adjustments */
 	@media (max-width: 640px) {
 		:global(.boolean-field-renderer .badge) {
-			@apply text-xs px-2 py-1;
+			font-size: 0.75rem;
+			padding: 0.25rem 0.5rem;
 		}
 		
 		:global(.boolean-field-renderer svg) {
-			@apply w-3 h-3;
+			width: 0.75rem;
+			height: 0.75rem;
 		}
 	}
 

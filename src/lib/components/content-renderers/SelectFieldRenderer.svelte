@@ -87,7 +87,8 @@
 	/* Responsive adjustments */
 	@media (max-width: 640px) {
 		:global(.select-field-renderer .badge) {
-			@apply text-xs px-2 py-1;
+			font-size: 0.75rem;
+			padding: 0.25rem 0.5rem;
 		}
 	}
 

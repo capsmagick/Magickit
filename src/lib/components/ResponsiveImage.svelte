@@ -37,7 +37,7 @@
 		priority = false
 	}: Props = $props();
 
-	let imageElement: HTMLImageElement;
+	let imageElement = $state<HTMLImageElement>();
 	let isLoaded = $state(false);
 	let hasError = $state(false);
 	let isIntersecting = $state(false);
@@ -109,9 +109,9 @@
 	}
 
 	// Determine which source to use
-	const shouldLoad = shouldLoadEagerly || isIntersecting;
-	const imageSrc = shouldLoad ? (hasError ? finalFallbackSrc : src) : finalPlaceholder;
-	const imageSrcset = shouldLoad ? finalSrcset : '';
+	const shouldLoad = $derived(shouldLoadEagerly || isIntersecting);
+	const imageSrc = $derived(shouldLoad ? (hasError ? finalFallbackSrc : src) : finalPlaceholder);
+	const imageSrcset = $derived(shouldLoad ? finalSrcset : '');
 </script>
 
 <div 

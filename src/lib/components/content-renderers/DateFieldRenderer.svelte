@@ -144,11 +144,12 @@
 	/* Responsive adjustments */
 	@media (max-width: 640px) {
 		.field-value time {
-			@apply text-sm;
+			font-size: 0.875rem;
 		}
 		
 		.field-value svg {
-			@apply w-3 h-3;
+			width: 0.75rem;
+			height: 0.75rem;
 		}
 	}
 

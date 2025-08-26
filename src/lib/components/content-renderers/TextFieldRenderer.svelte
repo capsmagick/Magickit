@@ -71,7 +71,7 @@
 	/* Responsive typography */
 	@media (max-width: 640px) {
 		.field-value {
-			@apply text-sm;
+			font-size: 0.875rem;
 		}
 	}
 

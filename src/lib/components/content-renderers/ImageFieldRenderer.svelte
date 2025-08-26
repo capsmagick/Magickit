@@ -91,7 +91,7 @@
 		}
 		
 		.image-caption {
-			@apply text-xs;
+			font-size: 0.75rem;
 		}
 	}
 
