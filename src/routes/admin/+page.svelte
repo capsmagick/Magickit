@@ -4,6 +4,8 @@
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { authClient } from '$lib/auth/auth-client';
 	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
+	import { toast } from 'svelte-sonner';
 	import {
 		Users,
 		Key,
@@ -19,35 +21,42 @@
 		Database,
 		CheckCircle,
 		AlertTriangle,
-		Loader2
+		Loader2,
+		RefreshCw
 	} from '@lucide/svelte';
+	import type { PageData } from './$types';
 
-	let hasCheckedAuth = $state(false);
-	let isLoading = $state(true);
-	const session = authClient.useSession();
+	interface Props {
+		data: PageData;
+	}
 
-	// Reactive statement to check session and redirect if needed
-	$effect(() => {
-		if (!hasCheckedAuth && $session.data) {
-			hasCheckedAuth = true;
-			if ($session.data.user.role !== 'admin') {
-				goto('/login?returnTo=/admin');
-				return;
-			}
-			// Simulate loading dashboard data
-			setTimeout(() => {
-				isLoading = false;
-			}, 1000);
-		}
-	});
+	let { data }: Props = $props();
+	
+	let isLoading = $state(false);
+	let isRefreshing = $state(false);
+	let realTimeMetrics = $state(data.quickStats);
+	let lastUpdated = $state(new Date(data.loadedAt));
+	let updateInterval: NodeJS.Timeout | null = null;
 
-	// Mock dashboard metrics
-	const metrics = [
-		{ label: 'Total Users', value: '1,234', change: '+12%', trend: 'up', icon: Users },
-		{ label: 'Active Sessions', value: '89', change: '+5%', trend: 'up', icon: Activity },
-		{ label: 'System Health', value: '99.9%', change: '0%', trend: 'stable', icon: CheckCircle },
-		{ label: 'Security Alerts', value: '3', change: '-2', trend: 'down', icon: Shield }
-	];
+	// Real dashboard metrics from server data
+	let metrics = $derived(realTimeMetrics.map(stat => ({
+		label: stat.label,
+		value: stat.value,
+		change: stat.change,
+		trend: stat.trend,
+		icon: getIconComponent(stat.icon)
+	})));
+
+	function getIconComponent(iconName: string) {
+		const iconMap: Record<string, any> = {
+			Users,
+			Activity,
+			CheckCircle,
+			Shield,
+			Database
+		};
+		return iconMap[iconName] || Users;
+	}
 
 	const adminSections = [
 		{
@@ -119,22 +128,127 @@
 		}
 	];
 
-	const systemStatus = [
-		{ label: 'System Status', value: 'Active', status: 'success', icon: CheckCircle },
-		{ label: 'Database', value: 'Online', status: 'success', icon: Database },
-		{ label: 'Authentication', value: 'Secure', status: 'success', icon: Shield }
-	];
+	// Real system status from server data
+	let systemStatus = $derived(data.systemStatusIndicators.map(indicator => ({
+		label: indicator.label,
+		value: indicator.value,
+		status: indicator.status,
+		icon: getIconComponent(indicator.icon)
+	})));
+
+	// Real-time update functions
+	async function fetchRealTimeMetrics() {
+		try {
+			const response = await fetch('/api/admin/dashboard/metrics');
+			if (response.ok) {
+				const result = await response.json();
+				if (result.success) {
+					// Update metrics with real-time data
+					lastUpdated = new Date(result.data.timestamp);
+					// You could update specific metrics here based on real-time data
+				}
+			}
+		} catch (error) {
+			console.error('Error fetching real-time metrics:', error);
+		}
+	}
+
+	async function refreshDashboard() {
+		isRefreshing = true;
+		try {
+			const response = await fetch('/api/admin/dashboard/refresh', {
+				method: 'POST'
+			});
+			
+			if (response.ok) {
+				const result = await response.json();
+				if (result.success) {
+					// Update the data with fresh information
+					realTimeMetrics = result.data.quickStats;
+					lastUpdated = new Date(result.data.loadedAt);
+					
+					// Update other data if needed
+					data.dashboardMetrics = result.data.dashboardMetrics;
+					data.systemStatusIndicators = result.data.systemStatusIndicators;
+					data.userStatistics = result.data.userStatistics;
+					data.systemStatus = result.data.systemStatus;
+					
+					toast.success('Dashboard data refreshed successfully');
+				} else {
+					toast.error('Failed to refresh dashboard data');
+				}
+			} else {
+				toast.error('Failed to refresh dashboard data');
+			}
+		} catch (error) {
+			console.error('Error refreshing dashboard:', error);
+			toast.error('Error refreshing dashboard data');
+		} finally {
+			isRefreshing = false;
+		}
+	}
+
+	// Start real-time updates
+	onMount(() => {
+		// Update metrics every 30 seconds
+		updateInterval = setInterval(fetchRealTimeMetrics, 30000);
+		
+		return () => {
+			if (updateInterval) {
+				clearInterval(updateInterval);
+			}
+		};
+	});
 </script>
 
 <div class="container mx-auto px-4 py-6">
 	<div class="space-y-6">
 		<!-- Header -->
-		<div class="space-y-2">
-			<h1 class="text-2xl font-bold">Admin Dashboard</h1>
-			<p class="text-muted-foreground text-sm">
-				Welcome back, {$session.data?.user?.name || 'Admin'}. Manage your system from here.
-			</p>
+		<div class="flex items-center justify-between">
+			<div class="space-y-2">
+				<h1 class="text-2xl font-bold">Admin Dashboard</h1>
+				<p class="text-muted-foreground text-sm">
+					Welcome back, {data.user?.name || 'Admin'}. Manage your system from here.
+				</p>
+			</div>
+			<div class="flex items-center gap-4">
+				<div class="text-sm text-muted-foreground">
+					Last updated: {lastUpdated.toLocaleTimeString()}
+				</div>
+				<Button
+					variant="outline"
+					size="sm"
+					onclick={refreshDashboard}
+					disabled={isRefreshing}
+					class="transition-colors duration-200"
+				>
+					{#if isRefreshing}
+						<Loader2 class="h-4 w-4 animate-spin mr-2" />
+						Refreshing...
+					{:else}
+						<RefreshCw class="h-4 w-4 mr-2" />
+						Refresh
+					{/if}
+				</Button>
+			</div>
 		</div>
+
+		{#if data.error}
+			<!-- Error State -->
+			<Card.Root class="border-destructive">
+				<Card.Content class="p-6">
+					<div class="flex items-center gap-3">
+						<AlertTriangle class="h-5 w-5 text-destructive" />
+						<div>
+							<h3 class="font-semibold text-destructive">Error Loading Dashboard</h3>
+							<p class="text-sm text-muted-foreground mt-1">
+								{data.error}. Some data may be unavailable.
+							</p>
+						</div>
+					</div>
+				</Card.Content>
+			</Card.Root>
+		{/if}
 
 		{#if isLoading}
 			<!-- Loading State -->
@@ -253,22 +367,64 @@
 						{#each systemStatus as status}
 							<div class="flex items-center justify-between p-4 rounded-lg border">
 								<div class="flex items-center gap-3">
-									<div class="p-2 rounded-lg bg-green-100 dark:bg-green-900/20">
-										<status.icon class="h-5 w-5 text-green-600 dark:text-green-400" />
+									<div class="p-2 rounded-lg {status.status === 'success' ? 'bg-green-100 dark:bg-green-900/20' : status.status === 'warning' ? 'bg-yellow-100 dark:bg-yellow-900/20' : 'bg-red-100 dark:bg-red-900/20'}">
+										<status.icon class="h-5 w-5 {status.status === 'success' ? 'text-green-600 dark:text-green-400' : status.status === 'warning' ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}" />
 									</div>
 									<div class="space-y-1">
 										<p class="text-sm font-medium">{status.label}</p>
 										<p class="text-sm text-muted-foreground">{status.value}</p>
 									</div>
 								</div>
-								<Badge variant="default" class="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
-									Healthy
+								<Badge 
+									variant={status.status === 'success' ? 'default' : status.status === 'warning' ? 'secondary' : 'destructive'}
+									class={status.status === 'success' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' : status.status === 'warning' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'}
+								>
+									{status.status === 'success' ? 'Healthy' : status.status === 'warning' ? 'Warning' : 'Critical'}
 								</Badge>
 							</div>
 						{/each}
 					</div>
 				</Card.Content>
 			</Card.Root>
+
+			<!-- Additional System Information -->
+			{#if data.systemStatus.alerts.length > 0}
+				<Card.Root class="border-destructive">
+					<Card.Header class="space-y-2">
+						<Card.Title class="text-lg flex items-center gap-2">
+							<AlertTriangle class="h-5 w-5 text-destructive" />
+							Active System Alerts
+						</Card.Title>
+						<Card.Description class="text-sm">
+							{data.systemStatus.alerts.length} alert{data.systemStatus.alerts.length !== 1 ? 's' : ''} require attention
+						</Card.Description>
+					</Card.Header>
+					<Card.Content class="p-4">
+						<div class="space-y-3">
+							{#each data.systemStatus.alerts.slice(0, 5) as alert}
+								<div class="flex items-center justify-between p-3 rounded-lg border border-destructive/20 bg-destructive/5">
+									<div class="space-y-1">
+										<p class="text-sm font-medium">{alert.title || alert.message}</p>
+										<p class="text-xs text-muted-foreground">
+											{alert.category} • {new Date(alert.createdAt).toLocaleString()}
+										</p>
+									</div>
+									<Badge variant="destructive" class="text-xs">
+										{alert.type}
+									</Badge>
+								</div>
+							{/each}
+							{#if data.systemStatus.alerts.length > 5}
+								<div class="text-center pt-2">
+									<Button variant="outline" size="sm" onclick={() => goto('/admin/system/status')}>
+										View All {data.systemStatus.alerts.length} Alerts
+									</Button>
+								</div>
+							{/if}
+						</div>
+					</Card.Content>
+				</Card.Root>
+			{/if}
 		{/if}
 	</div>
 </div>

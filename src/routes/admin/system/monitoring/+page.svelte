@@ -1,307 +1,680 @@
 <script lang="ts">
-	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
-	import { Badge } from '$lib/components/ui/badge';
-	import { Button } from '$lib/components/ui/button';
-	import * as Select from '$lib/components/ui/select';
-	import { Activity, Cpu, MemoryStick, HardDrive, Wifi, RefreshCw } from '@lucide/svelte';
+  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { Badge } from '$lib/components/ui/badge';
+  import { Button } from '$lib/components/ui/button';
+  import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
+  import { Alert, AlertDescription } from '$lib/components/ui/alert';
+  import { Input } from '$lib/components/ui/input';
+  import { Label } from '$lib/components/ui/label';
+  import { 
+    Activity, 
+    AlertTriangle, 
+    CheckCircle, 
+    XCircle, 
+    Clock, 
+    Server, 
+    Database, 
+    HardDrive,
+    Cpu,
+    MemoryStick,
+    RefreshCw,
+    TrendingUp,
+    Users,
+    Zap,
+    Settings,
+    Bell,
+    BarChart3,
+    LineChart
+  } from '@lucide/svelte';
+  import type { PageData } from './$types';
+  import { onMount, onDestroy } from 'svelte';
+  import { invalidateAll } from '$app/navigation';
 
-	let timeRange = $state('1h');
-	let isRefreshing = $state(false);
+  interface Props {
+    data: PageData;
+  }
 
-	// Time range options for the select
-	const timeRangeOptions = [
-		{ value: '5m', label: 'Last 5 min' },
-		{ value: '1h', label: 'Last 1 hour' },
-		{ value: '24h', label: 'Last 24 hours' },
-		{ value: '7d', label: 'Last 7 days' }
-	];
+  let { data }: Props = $props();
 
-	// Get the display label for the selected time range
-	const selectedTimeRangeLabel = $derived(
-		timeRangeOptions.find((option) => option.value === timeRange)?.label ?? 'Select period'
-	);
+  // Real-time monitoring state
+  let isLiveMode = $state(true);
+  let refreshInterval: NodeJS.Timeout;
+  let isRefreshing = $state(false);
+  let selectedTimeRange = $state('1h');
+  let alertThresholds = $state({
+    cpu: { warning: 70, critical: 90 },
+    memory: { warning: 80, critical: 95 },
+    disk: { warning: 85, critical: 95 },
+    responseTime: { warning: 1000, critical: 2000 },
+    errorRate: { warning: 5, critical: 10 }
+  });
 
-	let monitoringData = $state({
-		cpu: {
-			current: 45,
-			average: 38,
-			peak: 78,
-			status: 'normal'
-		},
-		memory: {
-			used: 6.2,
-			total: 16,
-			percentage: 39,
-			status: 'normal'
-		},
-		disk: {
-			used: 245,
-			total: 500,
-			percentage: 49,
-			status: 'normal'
-		},
-		network: {
-			inbound: '125 MB/s',
-			outbound: '89 MB/s',
-			status: 'normal'
-		},
-		alerts: [
-			{
-				id: '1',
-				type: 'warning',
-				message: 'CPU usage spike detected at 14:32',
-				timestamp: new Date('2024-01-15T14:32:00'),
-				resolved: false
-			},
-			{
-				id: '2',
-				type: 'info',
-				message: 'Scheduled maintenance completed successfully',
-				timestamp: new Date('2024-01-15T12:00:00'),
-				resolved: true
-			},
-			{
-				id: '3',
-				type: 'error',
-				message: 'Database connection timeout (resolved)',
-				timestamp: new Date('2024-01-15T10:15:00'),
-				resolved: true
-			}
-		]
-	});
+  // Chart data processing
+  let chartData = $state({
+    cpu: [] as Array<{ time: string; value: number }>,
+    memory: [] as Array<{ time: string; value: number }>,
+    disk: [] as Array<{ time: string; value: number }>,
+    responseTime: [] as Array<{ time: string; value: number }>,
+    errorRate: [] as Array<{ time: string; value: number }>
+  });
 
-	function getStatusColor(status: string) {
-		switch (status) {
-			case 'normal':
-				return 'text-green-500';
-			case 'warning':
-				return 'text-yellow-500';
-			case 'critical':
-				return 'text-red-500';
-			default:
-				return 'text-gray-500';
-		}
-	}
+  onMount(() => {
+    processChartData();
+    
+    if (isLiveMode) {
+      startLiveUpdates();
+    }
 
-	function getAlertBadge(type: string) {
-		switch (type) {
-			case 'error':
-				return { variant: 'destructive' as const, text: 'Error' };
-			case 'warning':
-				return { variant: 'secondary' as const, text: 'Warning' };
-			case 'info':
-				return { variant: 'outline' as const, text: 'Info' };
-			default:
-				return { variant: 'outline' as const, text: type };
-		}
-	}
+    return () => {
+      stopLiveUpdates();
+    };
+  });
 
-	function getProgressColor(percentage: number) {
-		if (percentage >= 80) return 'bg-red-500';
-		if (percentage >= 60) return 'bg-yellow-500';
-		return 'bg-green-500';
-	}
+  onDestroy(() => {
+    stopLiveUpdates();
+  });
 
-	async function handleRefresh() {
-		isRefreshing = true;
-		// Simulate API call
-		await new Promise((resolve) => setTimeout(resolve, 1000));
-		// Update with new random data
-		monitoringData.cpu.current = Math.floor(Math.random() * 100);
-		monitoringData.memory.percentage = Math.floor(Math.random() * 100);
-		monitoringData.disk.percentage = Math.floor(Math.random() * 100);
-		isRefreshing = false;
-	}
+  function processChartData() {
+    if (!data.metricsHistory || data.metricsHistory.length === 0) {
+      return;
+    }
+
+    const sortedMetrics = [...data.metricsHistory].sort((a, b) => 
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+
+    chartData.cpu = sortedMetrics.map(m => ({
+      time: new Date(m.timestamp).toLocaleTimeString(),
+      value: m.cpu.usage
+    }));
+
+    chartData.memory = sortedMetrics.map(m => ({
+      time: new Date(m.timestamp).toLocaleTimeString(),
+      value: m.memory.percentage
+    }));
+
+    chartData.disk = sortedMetrics.map(m => ({
+      time: new Date(m.timestamp).toLocaleTimeString(),
+      value: m.disk.percentage
+    }));
+
+    chartData.responseTime = sortedMetrics.map(m => ({
+      time: new Date(m.timestamp).toLocaleTimeString(),
+      value: m.application.responseTime
+    }));
+
+    chartData.errorRate = sortedMetrics.map(m => ({
+      time: new Date(m.timestamp).toLocaleTimeString(),
+      value: m.application.errorRate
+    }));
+  }
+
+  function startLiveUpdates() {
+    refreshInterval = setInterval(async () => {
+      if (!isRefreshing && isLiveMode) {
+        await refreshData();
+      }
+    }, 10000); // Update every 10 seconds
+  }
+
+  function stopLiveUpdates() {
+    if (refreshInterval) {
+      clearInterval(refreshInterval);
+    }
+  }
+
+  async function refreshData() {
+    isRefreshing = true;
+    try {
+      await invalidateAll();
+      processChartData();
+    } finally {
+      isRefreshing = false;
+    }
+  }
+
+  function toggleLiveMode() {
+    isLiveMode = !isLiveMode;
+    if (isLiveMode) {
+      startLiveUpdates();
+    } else {
+      stopLiveUpdates();
+    }
+  }
+
+  async function changeTimeRange(range: string) {
+    selectedTimeRange = range;
+    // In a real implementation, you would reload data with the new time range
+    await refreshData();
+  }
+
+  function getMetricColor(value: number, thresholds: { warning: number; critical: number }) {
+    if (value >= thresholds.critical) return 'text-red-600';
+    if (value >= thresholds.warning) return 'text-yellow-600';
+    return 'text-green-600';
+  }
+
+  function getProgressBarColor(value: number, thresholds: { warning: number; critical: number }) {
+    if (value >= thresholds.critical) return 'bg-red-500';
+    if (value >= thresholds.warning) return 'bg-yellow-500';
+    return 'bg-green-500';
+  }
+
+  function formatBytes(bytes: number): string {
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    if (bytes === 0) return '0 B';
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+  }
+
+  let latestMetrics = $derived(data.latestMetrics);
+  let systemStatus = $derived(data.systemStatus);
+  let alertStats = $derived(data.alertStatistics);
 </script>
 
 <svelte:head>
-	<title>Real-time Monitoring | System Health | Admin</title>
+  <title>Real-time Monitoring - Admin Dashboard</title>
 </svelte:head>
 
-<div class="space-y-6">
-	<div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-		<div class="space-y-2">
-			<h1 class="text-2xl font-bold">Real-time Monitoring</h1>
-			<p class="text-muted-foreground">Monitor system resources and performance metrics</p>
-		</div>
-		<div class="flex items-center gap-2">
-			<Select.Root type="single" bind:value={timeRange}>
-				<Select.Trigger class="w-32">
-					{selectedTimeRangeLabel}
-				</Select.Trigger>
-				<Select.Content>
-					{#each timeRangeOptions as option}
-						<Select.Item value={option.value}>{option.label}</Select.Item>
-					{/each}
-				</Select.Content>
-			</Select.Root>
-			<Button
-				onclick={handleRefresh}
-				disabled={isRefreshing}
-				class="transition-colors duration-200"
-			>
-				<RefreshCw class="mr-2 h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
-				Refresh
-			</Button>
-		</div>
-	</div>
+<div class="container mx-auto p-6 space-y-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold tracking-tight">Real-time Monitoring</h1>
+      <p class="text-muted-foreground">
+        Live system metrics and performance monitoring
+      </p>
+    </div>
+    <div class="flex items-center gap-2">
+      <Button 
+        variant={isLiveMode ? "default" : "outline"}
+        size="sm" 
+        onclick={toggleLiveMode}
+        class="transition-colors duration-200"
+      >
+        <Activity class="h-4 w-4 {isLiveMode ? 'animate-pulse' : ''}" />
+        {isLiveMode ? 'Live' : 'Paused'}
+      </Button>
+      <Button 
+        variant="outline" 
+        size="sm" 
+        onclick={refreshData}
+        disabled={isRefreshing}
+        class="transition-colors duration-200"
+      >
+        <RefreshCw class="h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
+        Refresh
+      </Button>
+    </div>
+  </div>
 
-	<!-- Resource Monitoring Cards -->
-	<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-		<!-- CPU Usage -->
-		<Card>
-			<CardHeader class="pb-2">
-				<div class="flex items-center justify-between">
-					<CardTitle class="text-sm font-medium">CPU Usage</CardTitle>
-					<Cpu class="h-4 w-4 text-muted-foreground" />
-				</div>
-			</CardHeader>
-			<CardContent class="space-y-3">
-				<div class="text-2xl font-bold">{monitoringData.cpu.current}%</div>
-				<div class="h-2 w-full rounded-full bg-muted">
-					<div
-						class="h-2 rounded-full transition-all duration-300 {getProgressColor(
-							monitoringData.cpu.current
-						)}"
-						style="width: {monitoringData.cpu.current}%"
-					></div>
-				</div>
-				<div class="space-y-1 text-xs text-muted-foreground">
-					<div class="flex justify-between">
-						<span>Average:</span>
-						<span>{monitoringData.cpu.average}%</span>
-					</div>
-					<div class="flex justify-between">
-						<span>Peak:</span>
-						<span>{monitoringData.cpu.peak}%</span>
-					</div>
-				</div>
-			</CardContent>
-		</Card>
+  <!-- Time Range Selector -->
+  <Card>
+    <CardHeader>
+      <CardTitle class="text-lg">Time Range</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <div class="flex gap-2">
+        {#each ['15m', '1h', '6h', '24h', '7d'] as range}
+          <Button 
+            variant={selectedTimeRange === range ? 'default' : 'outline'}
+            size="sm"
+            onclick={() => changeTimeRange(range)}
+          >
+            {range}
+          </Button>
+        {/each}
+      </div>
+    </CardContent>
+  </Card>
 
-		<!-- Memory Usage -->
-		<Card>
-			<CardHeader class="pb-2">
-				<div class="flex items-center justify-between">
-					<CardTitle class="text-sm font-medium">Memory Usage</CardTitle>
-					<MemoryStick class="h-4 w-4 text-muted-foreground" />
-				</div>
-			</CardHeader>
-			<CardContent class="space-y-3">
-				<div class="text-2xl font-bold">{monitoringData.memory.percentage}%</div>
-				<div class="h-2 w-full rounded-full bg-muted">
-					<div
-						class="h-2 rounded-full transition-all duration-300 {getProgressColor(
-							monitoringData.memory.percentage
-						)}"
-						style="width: {monitoringData.memory.percentage}%"
-					></div>
-				</div>
-				<div class="text-xs text-muted-foreground">
-					<div class="flex justify-between">
-						<span>Used:</span>
-						<span>{monitoringData.memory.used} GB</span>
-					</div>
-					<div class="flex justify-between">
-						<span>Total:</span>
-						<span>{monitoringData.memory.total} GB</span>
-					</div>
-				</div>
-			</CardContent>
-		</Card>
+  <Tabs value="metrics" class="space-y-6">
+    <TabsList class="grid w-full grid-cols-3">
+      <TabsTrigger value="metrics">Live Metrics</TabsTrigger>
+      <TabsTrigger value="charts">Historical Charts</TabsTrigger>
+      <TabsTrigger value="alerts">Alert Configuration</TabsTrigger>
+    </TabsList>
 
-		<!-- Disk Usage -->
-		<Card>
-			<CardHeader class="pb-2">
-				<div class="flex items-center justify-between">
-					<CardTitle class="text-sm font-medium">Disk Usage</CardTitle>
-					<HardDrive class="h-4 w-4 text-muted-foreground" />
-				</div>
-			</CardHeader>
-			<CardContent class="space-y-3">
-				<div class="text-2xl font-bold">{monitoringData.disk.percentage}%</div>
-				<div class="h-2 w-full rounded-full bg-muted">
-					<div
-						class="h-2 rounded-full transition-all duration-300 {getProgressColor(
-							monitoringData.disk.percentage
-						)}"
-						style="width: {monitoringData.disk.percentage}%"
-					></div>
-				</div>
-				<div class="text-xs text-muted-foreground">
-					<div class="flex justify-between">
-						<span>Used:</span>
-						<span>{monitoringData.disk.used} GB</span>
-					</div>
-					<div class="flex justify-between">
-						<span>Total:</span>
-						<span>{monitoringData.disk.total} GB</span>
-					</div>
-				</div>
-			</CardContent>
-		</Card>
+    <!-- Live Metrics Tab -->
+    <TabsContent value="metrics" class="space-y-6">
+      {#if latestMetrics}
+        <!-- Current Metrics Grid -->
+        <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <!-- CPU Usage -->
+          <Card>
+            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle class="text-sm font-medium">CPU Usage</CardTitle>
+              <Cpu class="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div class="text-2xl font-bold {getMetricColor(latestMetrics.cpu.usage, alertThresholds.cpu)}">
+                {latestMetrics.cpu.usage.toFixed(1)}%
+              </div>
+              <div class="mt-2 space-y-2">
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    class="h-2 rounded-full transition-all duration-300 {getProgressBarColor(latestMetrics.cpu.usage, alertThresholds.cpu)}" 
+                    style="width: {Math.min(100, latestMetrics.cpu.usage)}%"
+                  ></div>
+                </div>
+                <div class="flex justify-between text-xs text-muted-foreground">
+                  <span>Load: {latestMetrics.cpu.loadAverage[0].toFixed(2)}</span>
+                  <span>Cores: {latestMetrics.cpu.cores || 'N/A'}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-		<!-- Network Activity -->
-		<Card>
-			<CardHeader class="pb-2">
-				<div class="flex items-center justify-between">
-					<CardTitle class="text-sm font-medium">Network Activity</CardTitle>
-					<Wifi class="h-4 w-4 text-muted-foreground" />
-				</div>
-			</CardHeader>
-			<CardContent class="space-y-3">
-				<div class="space-y-2">
-					<div class="flex justify-between text-sm">
-						<span class="text-muted-foreground">Inbound:</span>
-						<span class="font-medium">{monitoringData.network.inbound}</span>
-					</div>
-					<div class="flex justify-between text-sm">
-						<span class="text-muted-foreground">Outbound:</span>
-						<span class="font-medium">{monitoringData.network.outbound}</span>
-					</div>
-				</div>
-				<div class="pt-2">
-					<Badge variant="outline" class="text-xs">Status: Normal</Badge>
-				</div>
-			</CardContent>
-		</Card>
-	</div>
+          <!-- Memory Usage -->
+          <Card>
+            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle class="text-sm font-medium">Memory Usage</CardTitle>
+              <MemoryStick class="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div class="text-2xl font-bold {getMetricColor(latestMetrics.memory.percentage, alertThresholds.memory)}">
+                {latestMetrics.memory.percentage.toFixed(1)}%
+              </div>
+              <div class="mt-2 space-y-2">
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    class="h-2 rounded-full transition-all duration-300 {getProgressBarColor(latestMetrics.memory.percentage, alertThresholds.memory)}" 
+                    style="width: {Math.min(100, latestMetrics.memory.percentage)}%"
+                  ></div>
+                </div>
+                <div class="flex justify-between text-xs text-muted-foreground">
+                  <span>{formatBytes(latestMetrics.memory.used)}</span>
+                  <span>{formatBytes(latestMetrics.memory.total)}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-	<!-- Recent Alerts -->
-	<Card>
-		<CardHeader>
-			<div class="flex items-center justify-between">
-				<CardTitle class="flex items-center gap-2">
-					<Activity class="h-5 w-5" />
-					Recent Alerts
-				</CardTitle>
-				<Badge variant="outline">{monitoringData.alerts.length} alerts</Badge>
-			</div>
-		</CardHeader>
-		<CardContent>
-			<div class="space-y-3">
-				{#each monitoringData.alerts as alert}
-					{@const alertBadge = getAlertBadge(alert.type)}
-					<div
-						class="flex items-start gap-3 rounded-lg border p-3 {alert.resolved
-							? 'opacity-60'
-							: ''}"
-					>
-						<Badge variant={alertBadge.variant} class="text-xs">
-							{alertBadge.text}
-						</Badge>
-						<div class="flex-1 space-y-1">
-							<p class="text-sm {alert.resolved ? 'line-through' : ''}">{alert.message}</p>
-							<p class="text-xs text-muted-foreground">
-								{alert.timestamp.toLocaleString()}
-								{#if alert.resolved}
-									<span class="ml-2 text-green-600">• Resolved</span>
-								{/if}
-							</p>
-						</div>
-					</div>
-				{/each}
-			</div>
-		</CardContent>
-	</Card>
+          <!-- Disk Usage -->
+          <Card>
+            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle class="text-sm font-medium">Disk Usage</CardTitle>
+              <HardDrive class="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div class="text-2xl font-bold {getMetricColor(latestMetrics.disk.percentage, alertThresholds.disk)}">
+                {latestMetrics.disk.percentage.toFixed(1)}%
+              </div>
+              <div class="mt-2 space-y-2">
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    class="h-2 rounded-full transition-all duration-300 {getProgressBarColor(latestMetrics.disk.percentage, alertThresholds.disk)}" 
+                    style="width: {Math.min(100, latestMetrics.disk.percentage)}%"
+                  ></div>
+                </div>
+                <div class="flex justify-between text-xs text-muted-foreground">
+                  <span>{formatBytes(latestMetrics.disk.used)}</span>
+                  <span>{formatBytes(latestMetrics.disk.total)}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <!-- Response Time -->
+          <Card>
+            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle class="text-sm font-medium">Response Time</CardTitle>
+              <Clock class="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div class="text-2xl font-bold {getMetricColor(latestMetrics.application.responseTime, alertThresholds.responseTime)}">
+                {latestMetrics.application.responseTime.toFixed(0)}ms
+              </div>
+              <div class="mt-2 space-y-2">
+                <div class="flex justify-between text-xs text-muted-foreground">
+                  <span>Requests/min: {latestMetrics.application.requestsPerMinute}</span>
+                  <span>Active Users: {latestMetrics.application.activeUsers}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <!-- Error Rate -->
+          <Card>
+            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle class="text-sm font-medium">Error Rate</CardTitle>
+              <AlertTriangle class="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div class="text-2xl font-bold {getMetricColor(latestMetrics.application.errorRate, alertThresholds.errorRate)}">
+                {latestMetrics.application.errorRate.toFixed(2)}%
+              </div>
+              <div class="mt-2 space-y-2">
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    class="h-2 rounded-full transition-all duration-300 {getProgressBarColor(latestMetrics.application.errorRate, alertThresholds.errorRate)}" 
+                    style="width: {Math.min(100, latestMetrics.application.errorRate)}%"
+                  ></div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <!-- Database Performance -->
+          <Card>
+            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle class="text-sm font-medium">Database</CardTitle>
+              <Database class="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div class="text-2xl font-bold">{latestMetrics.database.connections}</div>
+              <div class="mt-2 space-y-1">
+                <div class="flex justify-between text-xs text-muted-foreground">
+                  <span>Connections:</span>
+                  <span>{latestMetrics.database.connections}</span>
+                </div>
+                <div class="flex justify-between text-xs text-muted-foreground">
+                  <span>Query Time:</span>
+                  <span>{latestMetrics.database.queryTime.toFixed(1)}ms</span>
+                </div>
+                <div class="flex justify-between text-xs text-muted-foreground">
+                  <span>Slow Queries:</span>
+                  <span>{latestMetrics.database.slowQueries}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      {:else}
+        <Card>
+          <CardContent class="flex items-center justify-center py-12">
+            <div class="text-center space-y-4">
+              <Server class="h-12 w-12 mx-auto text-muted-foreground" />
+              <div>
+                <h3 class="text-lg font-semibold">No Metrics Available</h3>
+                <p class="text-muted-foreground">Waiting for system metrics to be collected...</p>
+              </div>
+              <Button onclick={refreshData} disabled={isRefreshing}>
+                <RefreshCw class="h-4 w-4 mr-2 {isRefreshing ? 'animate-spin' : ''}" />
+                Collect Metrics
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      {/if}
+    </TabsContent>
+
+    <!-- Historical Charts Tab -->
+    <TabsContent value="charts" class="space-y-6">
+      <div class="grid gap-6 md:grid-cols-2">
+        <!-- CPU Chart -->
+        <Card>
+          <CardHeader>
+            <CardTitle class="flex items-center gap-2">
+              <Cpu class="h-5 w-5" />
+              CPU Usage Over Time
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div class="h-64 flex items-center justify-center border rounded-lg bg-muted/10">
+              <div class="text-center space-y-2">
+                <BarChart3 class="h-8 w-8 mx-auto text-muted-foreground" />
+                <p class="text-sm text-muted-foreground">
+                  Chart visualization would be implemented here
+                </p>
+                <p class="text-xs text-muted-foreground">
+                  Data points: {chartData.cpu.length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <!-- Memory Chart -->
+        <Card>
+          <CardHeader>
+            <CardTitle class="flex items-center gap-2">
+              <MemoryStick class="h-5 w-5" />
+              Memory Usage Over Time
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div class="h-64 flex items-center justify-center border rounded-lg bg-muted/10">
+              <div class="text-center space-y-2">
+                <LineChart class="h-8 w-8 mx-auto text-muted-foreground" />
+                <p class="text-sm text-muted-foreground">
+                  Chart visualization would be implemented here
+                </p>
+                <p class="text-xs text-muted-foreground">
+                  Data points: {chartData.memory.length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <!-- Response Time Chart -->
+        <Card>
+          <CardHeader>
+            <CardTitle class="flex items-center gap-2">
+              <Clock class="h-5 w-5" />
+              Response Time Over Time
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div class="h-64 flex items-center justify-center border rounded-lg bg-muted/10">
+              <div class="text-center space-y-2">
+                <TrendingUp class="h-8 w-8 mx-auto text-muted-foreground" />
+                <p class="text-sm text-muted-foreground">
+                  Chart visualization would be implemented here
+                </p>
+                <p class="text-xs text-muted-foreground">
+                  Data points: {chartData.responseTime.length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <!-- Error Rate Chart -->
+        <Card>
+          <CardHeader>
+            <CardTitle class="flex items-center gap-2">
+              <AlertTriangle class="h-5 w-5" />
+              Error Rate Over Time
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div class="h-64 flex items-center justify-center border rounded-lg bg-muted/10">
+              <div class="text-center space-y-2">
+                <Activity class="h-8 w-8 mx-auto text-muted-foreground" />
+                <p class="text-sm text-muted-foreground">
+                  Chart visualization would be implemented here
+                </p>
+                <p class="text-xs text-muted-foreground">
+                  Data points: {chartData.errorRate.length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </TabsContent>
+
+    <!-- Alert Configuration Tab -->
+    <TabsContent value="alerts" class="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle class="flex items-center gap-2">
+            <Settings class="h-5 w-5" />
+            Alert Thresholds
+          </CardTitle>
+          <CardDescription>
+            Configure warning and critical thresholds for system metrics
+          </CardDescription>
+        </CardHeader>
+        <CardContent class="space-y-6">
+          <!-- CPU Thresholds -->
+          <div class="space-y-3">
+            <Label class="text-sm font-medium">CPU Usage (%)</Label>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <Label for="cpu-warning" class="text-xs text-muted-foreground">Warning</Label>
+                <Input 
+                  id="cpu-warning"
+                  type="number" 
+                  bind:value={alertThresholds.cpu.warning}
+                  min="0" 
+                  max="100"
+                  class="mt-1"
+                />
+              </div>
+              <div>
+                <Label for="cpu-critical" class="text-xs text-muted-foreground">Critical</Label>
+                <Input 
+                  id="cpu-critical"
+                  type="number" 
+                  bind:value={alertThresholds.cpu.critical}
+                  min="0" 
+                  max="100"
+                  class="mt-1"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Memory Thresholds -->
+          <div class="space-y-3">
+            <Label class="text-sm font-medium">Memory Usage (%)</Label>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <Label for="memory-warning" class="text-xs text-muted-foreground">Warning</Label>
+                <Input 
+                  id="memory-warning"
+                  type="number" 
+                  bind:value={alertThresholds.memory.warning}
+                  min="0" 
+                  max="100"
+                  class="mt-1"
+                />
+              </div>
+              <div>
+                <Label for="memory-critical" class="text-xs text-muted-foreground">Critical</Label>
+                <Input 
+                  id="memory-critical"
+                  type="number" 
+                  bind:value={alertThresholds.memory.critical}
+                  min="0" 
+                  max="100"
+                  class="mt-1"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Disk Thresholds -->
+          <div class="space-y-3">
+            <Label class="text-sm font-medium">Disk Usage (%)</Label>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <Label for="disk-warning" class="text-xs text-muted-foreground">Warning</Label>
+                <Input 
+                  id="disk-warning"
+                  type="number" 
+                  bind:value={alertThresholds.disk.warning}
+                  min="0" 
+                  max="100"
+                  class="mt-1"
+                />
+              </div>
+              <div>
+                <Label for="disk-critical" class="text-xs text-muted-foreground">Critical</Label>
+                <Input 
+                  id="disk-critical"
+                  type="number" 
+                  bind:value={alertThresholds.disk.critical}
+                  min="0" 
+                  max="100"
+                  class="mt-1"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Response Time Thresholds -->
+          <div class="space-y-3">
+            <Label class="text-sm font-medium">Response Time (ms)</Label>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <Label for="response-warning" class="text-xs text-muted-foreground">Warning</Label>
+                <Input 
+                  id="response-warning"
+                  type="number" 
+                  bind:value={alertThresholds.responseTime.warning}
+                  min="0"
+                  class="mt-1"
+                />
+              </div>
+              <div>
+                <Label for="response-critical" class="text-xs text-muted-foreground">Critical</Label>
+                <Input 
+                  id="response-critical"
+                  type="number" 
+                  bind:value={alertThresholds.responseTime.critical}
+                  min="0"
+                  class="mt-1"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-end">
+            <Button>
+              <Bell class="h-4 w-4 mr-2" />
+              Save Alert Configuration
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- Alert Statistics -->
+      <Card>
+        <CardHeader>
+          <CardTitle>Alert Statistics</CardTitle>
+          <CardDescription>
+            Overview of system alerts for the selected time period
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div class="text-center p-4 border rounded-lg">
+              <div class="text-2xl font-bold text-red-600">{alertStats.overall.critical}</div>
+              <div class="text-sm text-muted-foreground">Critical</div>
+            </div>
+            <div class="text-center p-4 border rounded-lg">
+              <div class="text-2xl font-bold text-orange-600">{alertStats.overall.error}</div>
+              <div class="text-sm text-muted-foreground">Error</div>
+            </div>
+            <div class="text-center p-4 border rounded-lg">
+              <div class="text-2xl font-bold text-yellow-600">{alertStats.overall.warning}</div>
+              <div class="text-sm text-muted-foreground">Warning</div>
+            </div>
+            <div class="text-center p-4 border rounded-lg">
+              <div class="text-2xl font-bold text-green-600">{alertStats.overall.resolved}</div>
+              <div class="text-sm text-muted-foreground">Resolved</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </TabsContent>
+  </Tabs>
+
+  <!-- Status Footer -->
+  <div class="text-center text-sm text-muted-foreground">
+    {#if isLiveMode}
+      <span class="inline-flex items-center gap-1">
+        <Activity class="h-3 w-3 animate-pulse text-green-500" />
+        Live monitoring active - Updates every 10 seconds
+      </span>
+    {:else}
+      <span>Live monitoring paused</span>
+    {/if}
+    <span class="mx-2">•</span>
+    Last updated: {new Date(data.timestamp).toLocaleString()}
+  </div>
 </div>

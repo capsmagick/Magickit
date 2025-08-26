@@ -1,7 +1,7 @@
 import type { RequestHandler } from './$types';
 
-export const GET: RequestHandler = async () => {
-	const baseUrl = 'https://magickit.dev';
+export const GET: RequestHandler = async ({ url }) => {
+	const baseUrl = url.origin;
 	
 	const robotsTxt = `User-agent: *
 Allow: /

@@ -4,6 +4,9 @@ import {
   systemAlertsCollection, 
   systemHealthStatusCollection 
 } from '$lib/db/collections';
+import { SystemMetricsCollection } from '$lib/db/collections/systemMetrics';
+import { SystemAlertsCollection } from '$lib/db/collections/systemAlerts';
+import { SystemHealthStatusCollection } from '$lib/db/collections/systemHealthStatus';
 import type { 
   SystemMetrics, 
   SystemAlert, 
@@ -16,6 +19,9 @@ import {
   isValidObjectId 
 } from '$lib/db/models';
 import db from '$lib/db/dbClient';
+import os from 'os';
+import fs from 'fs/promises';
+import { promisify } from 'util';
 
 // ============================================================================
 // Health Monitoring Service
@@ -137,9 +143,8 @@ export class HealthMonitoringService {
     try {
       const metrics = await this.collectSystemMetrics();
       
-      // Store metrics in database
-      const result = await systemMetricsCollection.insertOne(metrics);
-      const storedMetrics = { ...metrics, _id: result.insertedId };
+      // Store metrics in database using collection class
+      const storedMetrics = await SystemMetricsCollection.create(metrics);
 
       // Update last metrics cache
       this.lastMetrics = storedMetrics;
@@ -162,42 +167,252 @@ export class HealthMonitoringService {
    */
   private static async getSystemResourceUsage(): Promise<SystemResourceUsage> {
     try {
-      // Note: In a real implementation, you would use system monitoring libraries
-      // like 'systeminformation', 'node-os-utils', or native Node.js modules
-      // This is a simplified mock implementation
-
-      const cpuUsage = Math.random() * 100; // Mock CPU usage
-      const memoryUsage = process.memoryUsage();
-      const totalMemory = 8 * 1024 * 1024 * 1024; // Mock 8GB total memory
+      // Get CPU metrics
+      const cpuMetrics = await this.getCPUMetrics();
+      
+      // Get memory metrics
+      const memoryMetrics = await this.getMemoryMetrics();
+      
+      // Get disk metrics
+      const diskMetrics = await this.getDiskMetrics();
+      
+      // Get network metrics
+      const networkMetrics = await this.getNetworkMetrics();
 
       return {
-        cpu: {
-          usage: cpuUsage,
-          loadAverage: [1.2, 1.5, 1.8], // Mock load average
-          cores: 4 // Mock CPU cores
-        },
-        memory: {
-          used: memoryUsage.heapUsed,
-          total: totalMemory,
-          percentage: (memoryUsage.heapUsed / totalMemory) * 100,
-          available: totalMemory - memoryUsage.heapUsed
-        },
-        disk: {
-          used: 50 * 1024 * 1024 * 1024, // Mock 50GB used
-          total: 100 * 1024 * 1024 * 1024, // Mock 100GB total
-          percentage: 50,
-          available: 50 * 1024 * 1024 * 1024
-        },
-        network: {
-          bytesIn: Math.floor(Math.random() * 1000000),
-          bytesOut: Math.floor(Math.random() * 1000000),
-          packetsIn: Math.floor(Math.random() * 10000),
-          packetsOut: Math.floor(Math.random() * 10000)
-        }
+        cpu: cpuMetrics,
+        memory: memoryMetrics,
+        disk: diskMetrics,
+        network: networkMetrics
       };
     } catch (error) {
       console.error('Error getting system resource usage:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Get CPU usage and load average
+   */
+  private static async getCPUMetrics(): Promise<SystemResourceUsage['cpu']> {
+    try {
+      const cpus = os.cpus();
+      const loadAverage = os.loadavg();
+      
+      // Calculate CPU usage by measuring idle time
+      let totalIdle = 0;
+      let totalTick = 0;
+      
+      cpus.forEach(cpu => {
+        for (const type in cpu.times) {
+          totalTick += cpu.times[type as keyof typeof cpu.times];
+        }
+        totalIdle += cpu.times.idle;
+      });
+      
+      const idle = totalIdle / cpus.length;
+      const total = totalTick / cpus.length;
+      const usage = 100 - ~~(100 * idle / total);
+
+      return {
+        usage: Math.max(0, Math.min(100, usage)),
+        loadAverage,
+        cores: cpus.length
+      };
+    } catch (error) {
+      console.error('Error getting CPU metrics:', error);
+      // Return fallback values
+      return {
+        usage: 0,
+        loadAverage: [0, 0, 0],
+        cores: os.cpus().length || 1
+      };
+    }
+  }
+
+  /**
+   * Get memory usage statistics
+   */
+  private static async getMemoryMetrics(): Promise<SystemResourceUsage['memory']> {
+    try {
+      const totalMemory = os.totalmem();
+      const freeMemory = os.freemem();
+      const usedMemory = totalMemory - freeMemory;
+      const percentage = (usedMemory / totalMemory) * 100;
+
+      return {
+        used: usedMemory,
+        total: totalMemory,
+        percentage: Math.max(0, Math.min(100, percentage)),
+        available: freeMemory
+      };
+    } catch (error) {
+      console.error('Error getting memory metrics:', error);
+      // Return fallback values
+      const totalMemory = os.totalmem();
+      const freeMemory = os.freemem();
+      return {
+        used: totalMemory - freeMemory,
+        total: totalMemory,
+        percentage: 0,
+        available: freeMemory
+      };
+    }
+  }
+
+  /**
+   * Get disk usage statistics
+   */
+  private static async getDiskMetrics(): Promise<SystemResourceUsage['disk']> {
+    try {
+      // For cross-platform compatibility, we'll use a simplified approach
+      // In production, you might want to use a library like 'node-disk-info'
+      
+      let diskStats;
+      
+      if (process.platform === 'win32') {
+        // Windows implementation would require additional libraries
+        diskStats = await this.getWindowsDiskStats();
+      } else {
+        // Unix-like systems (Linux, macOS)
+        diskStats = await this.getUnixDiskStats();
+      }
+
+      return diskStats;
+    } catch (error) {
+      console.error('Error getting disk metrics:', error);
+      // Return fallback values
+      return {
+        used: 0,
+        total: 100 * 1024 * 1024 * 1024, // 100GB fallback
+        percentage: 0,
+        available: 100 * 1024 * 1024 * 1024
+      };
+    }
+  }
+
+  /**
+   * Get disk stats for Unix-like systems
+   */
+  private static async getUnixDiskStats(): Promise<SystemResourceUsage['disk']> {
+    try {
+      const { exec } = await import('child_process');
+      const execAsync = promisify(exec);
+      
+      // Use df command to get disk usage for root filesystem
+      const { stdout } = await execAsync('df -k / | tail -1');
+      const parts = stdout.trim().split(/\s+/);
+      
+      if (parts.length >= 4) {
+        const total = parseInt(parts[1]) * 1024; // Convert from KB to bytes
+        const used = parseInt(parts[2]) * 1024;
+        const available = parseInt(parts[3]) * 1024;
+        const percentage = (used / total) * 100;
+
+        return {
+          used,
+          total,
+          percentage: Math.max(0, Math.min(100, percentage)),
+          available
+        };
+      }
+      
+      throw new Error('Unable to parse df output');
+    } catch (error) {
+      console.error('Error getting Unix disk stats:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get disk stats for Windows systems
+   */
+  private static async getWindowsDiskStats(): Promise<SystemResourceUsage['disk']> {
+    try {
+      const { exec } = await import('child_process');
+      const execAsync = promisify(exec);
+      
+      // Use wmic command to get disk usage for C: drive
+      const { stdout } = await execAsync('wmic logicaldisk where caption="C:" get size,freespace /value');
+      
+      let total = 0;
+      let available = 0;
+      
+      const lines = stdout.split('\n');
+      for (const line of lines) {
+        if (line.includes('FreeSpace=')) {
+          available = parseInt(line.split('=')[1]);
+        } else if (line.includes('Size=')) {
+          total = parseInt(line.split('=')[1]);
+        }
+      }
+      
+      if (total > 0) {
+        const used = total - available;
+        const percentage = (used / total) * 100;
+
+        return {
+          used,
+          total,
+          percentage: Math.max(0, Math.min(100, percentage)),
+          available
+        };
+      }
+      
+      throw new Error('Unable to get Windows disk stats');
+    } catch (error) {
+      console.error('Error getting Windows disk stats:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get network usage statistics
+   */
+  private static async getNetworkMetrics(): Promise<SystemResourceUsage['network']> {
+    try {
+      const networkInterfaces = os.networkInterfaces();
+      let bytesIn = 0;
+      let bytesOut = 0;
+      let packetsIn = 0;
+      let packetsOut = 0;
+
+      // Note: Node.js doesn't provide network traffic statistics directly
+      // In production, you would need to use system-specific commands or libraries
+      // For now, we'll provide basic interface information and mock traffic data
+      
+      // Count active network interfaces
+      let activeInterfaces = 0;
+      for (const [name, interfaces] of Object.entries(networkInterfaces)) {
+        if (interfaces && name !== 'lo' && name !== 'Loopback') {
+          activeInterfaces += interfaces.length;
+        }
+      }
+
+      // Mock network traffic based on active interfaces
+      // In production, you would read from /proc/net/dev on Linux or use system commands
+      if (activeInterfaces > 0) {
+        bytesIn = Math.floor(Math.random() * 1000000 * activeInterfaces);
+        bytesOut = Math.floor(Math.random() * 1000000 * activeInterfaces);
+        packetsIn = Math.floor(Math.random() * 10000 * activeInterfaces);
+        packetsOut = Math.floor(Math.random() * 10000 * activeInterfaces);
+      }
+
+      return {
+        bytesIn,
+        bytesOut,
+        packetsIn,
+        packetsOut
+      };
+    } catch (error) {
+      console.error('Error getting network metrics:', error);
+      // Return fallback values
+      return {
+        bytesIn: 0,
+        bytesOut: 0,
+        packetsIn: 0,
+        packetsOut: 0
+      };
     }
   }
 
@@ -209,16 +424,33 @@ export class HealthMonitoringService {
       // Get MongoDB server status
       const serverStatus = await db.admin().serverStatus();
       
+      // Get database stats
+      const dbStats = await db.stats();
+      
+      // Calculate query performance metrics
+      const opcounters = serverStatus.opcounters || {};
+      const totalOps = (opcounters.query || 0) + (opcounters.insert || 0) + 
+                      (opcounters.update || 0) + (opcounters.delete || 0);
+      
+      // Get current operations to check for slow queries
+      const currentOps = await db.admin().command({ currentOp: true });
+      const slowQueries = currentOps.inprog ? 
+        currentOps.inprog.filter((op: any) => op.secs_running && op.secs_running > 1).length : 0;
+
+      // Calculate average query time (simplified estimation)
+      const avgQueryTime = serverStatus.globalLock?.totalTime && serverStatus.globalLock?.lockTime ?
+        (serverStatus.globalLock.lockTime / serverStatus.globalLock.totalTime) * 1000 : 0;
+
       return {
         connections: serverStatus.connections?.current || 0,
         activeConnections: serverStatus.connections?.active || 0,
-        queryTime: Math.random() * 100, // Mock average query time
-        slowQueries: 0, // Mock slow queries count
-        operationsPerSecond: serverStatus.opcounters?.query || 0
+        queryTime: Math.max(0, avgQueryTime),
+        slowQueries,
+        operationsPerSecond: totalOps
       };
     } catch (error) {
       console.error('Error getting database metrics:', error);
-      // Return mock data if database is unavailable
+      // Return fallback data if database is unavailable
       return {
         connections: 0,
         activeConnections: 0,
@@ -234,12 +466,25 @@ export class HealthMonitoringService {
    */
   private static async getApplicationMetrics(): Promise<ApplicationMetrics> {
     try {
+      // Get process uptime
+      const uptime = process.uptime();
+      
+      // Get memory usage for the application
+      const memUsage = process.memoryUsage();
+      
+      // Calculate basic application metrics
+      // In production, you would integrate with your application's metrics collection
+      const responseTime = this.calculateAverageResponseTime();
+      const errorRate = this.calculateErrorRate();
+      const requestsPerMinute = this.calculateRequestsPerMinute();
+      const activeUsers = await this.getActiveUsersCount();
+
       return {
-        responseTime: Math.random() * 500, // Mock response time
-        errorRate: Math.random() * 5, // Mock error rate percentage
-        requestsPerMinute: Math.floor(Math.random() * 1000),
-        activeUsers: Math.floor(Math.random() * 100),
-        uptime: process.uptime()
+        responseTime,
+        errorRate,
+        requestsPerMinute,
+        activeUsers,
+        uptime
       };
     } catch (error) {
       console.error('Error getting application metrics:', error);
@@ -248,8 +493,74 @@ export class HealthMonitoringService {
         errorRate: 0,
         requestsPerMinute: 0,
         activeUsers: 0,
-        uptime: 0
+        uptime: process.uptime()
       };
+    }
+  }
+
+  /**
+   * Calculate average response time
+   * In production, this would integrate with your request tracking system
+   */
+  private static calculateAverageResponseTime(): number {
+    // Mock implementation - in production, you would track actual response times
+    // This could integrate with APM tools like New Relic, DataDog, or custom metrics
+    const baseResponseTime = 50; // Base response time in ms
+    const variation = Math.random() * 200; // Random variation up to 200ms
+    return Math.round(baseResponseTime + variation);
+  }
+
+  /**
+   * Calculate error rate percentage
+   * In production, this would track actual error rates
+   */
+  private static calculateErrorRate(): number {
+    // Mock implementation - in production, you would track actual errors
+    // This could integrate with error tracking tools like Sentry or custom logging
+    const baseErrorRate = 0.1; // Base error rate of 0.1%
+    const variation = Math.random() * 2; // Random variation up to 2%
+    return Math.round((baseErrorRate + variation) * 100) / 100;
+  }
+
+  /**
+   * Calculate requests per minute
+   * In production, this would track actual request counts
+   */
+  private static calculateRequestsPerMinute(): number {
+    // Mock implementation - in production, you would track actual requests
+    // This could integrate with web server logs or application metrics
+    const baseRequests = 10; // Base requests per minute
+    const variation = Math.floor(Math.random() * 100); // Random variation
+    return baseRequests + variation;
+  }
+
+  /**
+   * Get active users count
+   * In production, this would query your session store or user tracking system
+   */
+  private static async getActiveUsersCount(): Promise<number> {
+    try {
+      // Mock implementation - in production, you would:
+      // 1. Query active sessions from your session store
+      // 2. Count unique users from recent activity logs
+      // 3. Use real-time analytics data
+      
+      // For now, return a mock value based on time of day
+      const hour = new Date().getHours();
+      let baseUsers = 5;
+      
+      // Simulate higher activity during business hours
+      if (hour >= 9 && hour <= 17) {
+        baseUsers = 20;
+      } else if (hour >= 18 && hour <= 22) {
+        baseUsers = 15;
+      }
+      
+      const variation = Math.floor(Math.random() * 10);
+      return baseUsers + variation;
+    } catch (error) {
+      console.error('Error getting active users count:', error);
+      return 0;
     }
   }
 
@@ -377,7 +688,9 @@ export class HealthMonitoringService {
 
       // Store alerts if any
       if (alerts.length > 0) {
-        await systemAlertsCollection.insertMany(alerts as SystemAlert[]);
+        for (const alert of alerts) {
+          await SystemAlertsCollection.create(alert);
+        }
       }
     } catch (error) {
       console.error('Error checking and creating alerts:', error);
@@ -420,7 +733,7 @@ export class HealthMonitoringService {
       const criticalAlerts = await this.getCriticalAlertsCount();
       const status = getSystemStatus(healthScore, criticalAlerts);
 
-      const healthStatus: Omit<SystemHealthStatus, '_id'> = {
+      const healthStatus: Omit<SystemHealthStatus, '_id' | 'createdAt' | 'updatedAt'> = {
         status,
         score: healthScore,
         uptime: metrics.application.uptime,
@@ -432,16 +745,10 @@ export class HealthMonitoringService {
           email: 'healthy'  // Mock email service status
         },
         activeAlerts,
-        criticalAlerts,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        criticalAlerts
       };
 
-      await systemHealthStatusCollection.replaceOne(
-        {},
-        healthStatus as SystemHealthStatus,
-        { upsert: true }
-      );
+      await SystemHealthStatusCollection.updateCurrent(healthStatus);
     } catch (error) {
       console.error('Error updating system health status:', error);
     }
@@ -452,7 +759,7 @@ export class HealthMonitoringService {
    */
   static async getSystemHealthStatus(): Promise<SystemHealthStatus | null> {
     try {
-      return await systemHealthStatusCollection.findOne({});
+      return await SystemHealthStatusCollection.getLatest();
     } catch (error) {
       console.error('Error getting system health status:', error);
       return null;
@@ -469,18 +776,15 @@ export class HealthMonitoringService {
     limit: number = 100
   ): Promise<SystemMetrics[]> {
     try {
-      const query = {
-        timestamp: {
-          $gte: startDate,
-          $lte: endDate
-        }
-      };
-
-      return await systemMetricsCollection
-        .find(query)
-        .sort({ timestamp: -1 })
-        .limit(limit)
-        .toArray();
+      const result = await SystemMetricsCollection.findAll({
+        startDate,
+        endDate,
+        limit,
+        sortBy: 'timestamp',
+        sortOrder: 'desc'
+      });
+      
+      return result.metrics;
     } catch (error) {
       console.error('Error getting metrics history:', error);
       return [];
@@ -492,10 +796,8 @@ export class HealthMonitoringService {
    */
   static async getActiveAlerts(): Promise<SystemAlert[]> {
     try {
-      return await systemAlertsCollection
-        .find({ resolvedAt: { $exists: false } })
-        .sort({ createdAt: -1 })
-        .toArray();
+      const result = await SystemAlertsCollection.getActiveAlerts();
+      return result.alerts;
     } catch (error) {
       console.error('Error getting active alerts:', error);
       return [];
@@ -507,9 +809,8 @@ export class HealthMonitoringService {
    */
   private static async getActiveAlertsCount(): Promise<number> {
     try {
-      return await systemAlertsCollection.countDocuments({ 
-        resolvedAt: { $exists: false } 
-      });
+      const result = await SystemAlertsCollection.getActiveAlerts();
+      return result.total;
     } catch (error) {
       console.error('Error getting active alerts count:', error);
       return 0;
@@ -521,10 +822,8 @@ export class HealthMonitoringService {
    */
   private static async getCriticalAlertsCount(): Promise<number> {
     try {
-      return await systemAlertsCollection.countDocuments({ 
-        type: 'critical',
-        resolvedAt: { $exists: false } 
-      });
+      const result = await SystemAlertsCollection.getCriticalAlerts();
+      return result.total;
     } catch (error) {
       console.error('Error getting critical alerts count:', error);
       return 0;
@@ -543,18 +842,12 @@ export class HealthMonitoringService {
         throw new Error('Invalid ID provided');
       }
 
-      const result = await systemAlertsCollection.updateOne(
-        { _id: new ObjectId(alertId) },
-        {
-          $set: {
-            acknowledged: true,
-            acknowledgedBy: new ObjectId(acknowledgedBy),
-            acknowledgedAt: new Date()
-          }
-        }
+      const result = await SystemAlertsCollection.acknowledge(
+        alertId, 
+        new ObjectId(acknowledgedBy)
       );
 
-      return result.modifiedCount > 0;
+      return result !== null;
     } catch (error) {
       console.error('Error acknowledging alert:', error);
       return false;
@@ -570,16 +863,8 @@ export class HealthMonitoringService {
         throw new Error('Invalid alert ID');
       }
 
-      const result = await systemAlertsCollection.updateOne(
-        { _id: new ObjectId(alertId) },
-        {
-          $set: {
-            resolvedAt: new Date()
-          }
-        }
-      );
-
-      return result.modifiedCount > 0;
+      const result = await SystemAlertsCollection.resolve(alertId);
+      return result !== null;
     } catch (error) {
       console.error('Error resolving alert:', error);
       return false;
@@ -598,35 +883,28 @@ export class HealthMonitoringService {
   }> {
     try {
       const [
-        totalMetrics,
-        totalAlerts,
-        activeAlerts,
-        criticalAlerts,
-        recentMetrics
+        metricsResult,
+        alertsResult,
+        activeAlertsResult,
+        criticalAlertsResult,
+        recentMetricsResult
       ] = await Promise.all([
-        systemMetricsCollection.countDocuments(),
-        systemAlertsCollection.countDocuments(),
-        systemAlertsCollection.countDocuments({ resolvedAt: { $exists: false } }),
-        systemAlertsCollection.countDocuments({ 
-          type: 'critical', 
-          resolvedAt: { $exists: false } 
-        }),
-        systemMetricsCollection
-          .find({})
-          .sort({ timestamp: -1 })
-          .limit(10)
-          .toArray()
+        SystemMetricsCollection.findAll({ limit: 1 }), // Just to get total count
+        SystemAlertsCollection.findAll({ limit: 1 }), // Just to get total count
+        SystemAlertsCollection.getActiveAlerts({ limit: 1 }), // Just to get total count
+        SystemAlertsCollection.getCriticalAlerts(1), // Just to get total count
+        SystemMetricsCollection.getLatest(10)
       ]);
 
-      const averageHealthScore = recentMetrics.length > 0
-        ? recentMetrics.reduce((sum, metric) => sum + calculateHealthScore(metric), 0) / recentMetrics.length
+      const averageHealthScore = recentMetricsResult.length > 0
+        ? recentMetricsResult.reduce((sum, metric) => sum + calculateHealthScore(metric), 0) / recentMetricsResult.length
         : 0;
 
       return {
-        totalMetrics,
-        totalAlerts,
-        activeAlerts,
-        criticalAlerts,
+        totalMetrics: metricsResult.total,
+        totalAlerts: alertsResult.total,
+        activeAlerts: activeAlertsResult.total,
+        criticalAlerts: criticalAlertsResult.total,
         averageHealthScore: Math.round(averageHealthScore)
       };
     } catch (error) {
@@ -649,17 +927,160 @@ export class HealthMonitoringService {
   }
 
   /**
+   * Get aggregated metrics for a time period
+   */
+  static async getAggregatedMetrics(
+    startDate: Date,
+    endDate: Date,
+    interval: '1m' | '5m' | '15m' | '1h' | '1d' = '5m'
+  ) {
+    try {
+      return await SystemMetricsCollection.getAggregatedMetrics(startDate, endDate, interval);
+    } catch (error) {
+      console.error('Error getting aggregated metrics:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get system health summary
+   */
+  static async getHealthSummary() {
+    try {
+      return await SystemMetricsCollection.getHealthSummary();
+    } catch (error) {
+      console.error('Error getting health summary:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get alert statistics
+   */
+  static async getAlertStatistics(startDate?: Date, endDate?: Date) {
+    try {
+      return await SystemAlertsCollection.getAlertStatistics(startDate, endDate);
+    } catch (error) {
+      console.error('Error getting alert statistics:', error);
+      return {
+        overall: {
+          total: 0,
+          critical: 0,
+          error: 0,
+          warning: 0,
+          info: 0,
+          acknowledged: 0,
+          resolved: 0,
+          active: 0
+        },
+        byCategory: []
+      };
+    }
+  }
+
+  /**
+   * Get system status overview
+   */
+  static async getSystemStatus(): Promise<{
+    status: 'healthy' | 'warning' | 'critical';
+    alerts: SystemAlert[];
+    uptime: number;
+    lastCheck: Date;
+  }> {
+    try {
+      const [healthStatus, activeAlerts] = await Promise.all([
+        this.getSystemHealthStatus(),
+        this.getActiveAlerts()
+      ]);
+
+      return {
+        status: healthStatus?.status || 'critical',
+        alerts: activeAlerts,
+        uptime: healthStatus?.uptime || 0,
+        lastCheck: healthStatus?.lastCheck || new Date()
+      };
+    } catch (error) {
+      console.error('Error getting system status:', error);
+      return {
+        status: 'critical',
+        alerts: [],
+        uptime: 0,
+        lastCheck: new Date()
+      };
+    }
+  }
+
+  /**
+   * Force a metrics collection cycle
+   */
+  static async forceMetricsCollection(): Promise<SystemMetrics> {
+    try {
+      console.log('Forcing metrics collection...');
+      return await this.collectAndStoreMetrics();
+    } catch (error) {
+      console.error('Error forcing metrics collection:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get system resource summary
+   */
+  static async getResourceSummary(): Promise<{
+    cpu: { usage: number; status: 'healthy' | 'warning' | 'critical' };
+    memory: { percentage: number; status: 'healthy' | 'warning' | 'critical' };
+    disk: { percentage: number; status: 'healthy' | 'warning' | 'critical' };
+    database: { connections: number; status: 'healthy' | 'warning' | 'critical' };
+  }> {
+    try {
+      const latest = await SystemMetricsCollection.getLatest(1);
+      
+      if (latest.length === 0) {
+        return {
+          cpu: { usage: 0, status: 'critical' },
+          memory: { percentage: 0, status: 'critical' },
+          disk: { percentage: 0, status: 'critical' },
+          database: { connections: 0, status: 'critical' }
+        };
+      }
+
+      const metrics = latest[0];
+      
+      return {
+        cpu: {
+          usage: metrics.cpu.usage,
+          status: metrics.cpu.usage > 80 ? 'critical' : metrics.cpu.usage > 60 ? 'warning' : 'healthy'
+        },
+        memory: {
+          percentage: metrics.memory.percentage,
+          status: metrics.memory.percentage > 85 ? 'critical' : metrics.memory.percentage > 70 ? 'warning' : 'healthy'
+        },
+        disk: {
+          percentage: metrics.disk.percentage,
+          status: metrics.disk.percentage > 90 ? 'critical' : metrics.disk.percentage > 80 ? 'warning' : 'healthy'
+        },
+        database: {
+          connections: metrics.database.connections,
+          status: metrics.database.connections === 0 ? 'critical' : metrics.database.queryTime > 1000 ? 'warning' : 'healthy'
+        }
+      };
+    } catch (error) {
+      console.error('Error getting resource summary:', error);
+      return {
+        cpu: { usage: 0, status: 'critical' },
+        memory: { percentage: 0, status: 'critical' },
+        disk: { percentage: 0, status: 'critical' },
+        database: { connections: 0, status: 'critical' }
+      };
+    }
+  }
+
+  /**
    * Clean up old metrics (keep only last 30 days)
    */
   static async cleanupOldMetrics(daysToKeep: number = 30): Promise<number> {
     try {
-      const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
-
-      const result = await systemMetricsCollection.deleteMany({
-        createdAt: { $lt: cutoffDate }
-      });
-
+      const result = await SystemMetricsCollection.cleanupOldMetrics(daysToKeep);
       console.log(`Cleaned up ${result.deletedCount} old metrics records`);
       return result.deletedCount;
     } catch (error) {
@@ -673,13 +1094,7 @@ export class HealthMonitoringService {
    */
   static async cleanupResolvedAlerts(daysToKeep: number = 7): Promise<number> {
     try {
-      const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
-
-      const result = await systemAlertsCollection.deleteMany({
-        resolvedAt: { $exists: true, $lt: cutoffDate }
-      });
-
+      const result = await SystemAlertsCollection.cleanupResolvedAlerts(daysToKeep);
       console.log(`Cleaned up ${result.deletedCount} resolved alerts`);
       return result.deletedCount;
     } catch (error) {

@@ -5,11 +5,12 @@ import type { MediaFile, MediaVariant } from '$lib/db/models';
 
 // S3 Configuration (would come from environment variables)
 const S3_CONFIG = {
-  region: process.env.AWS_REGION || 'us-east-1',
-  bucket: process.env.S3_BUCKET_NAME || 'your-media-bucket',
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
-  cdnDomain: process.env.CDN_DOMAIN || `https://${process.env.S3_BUCKET_NAME}.s3.amazonaws.com`
+  region: process.env.S3_REGION || process.env.AWS_REGION || 'us-east-1',
+  bucket: process.env.S3_BUCKET || process.env.S3_BUCKET_NAME || 'your-media-bucket',
+  accessKeyId: process.env.S3_ACCESS_KEY || process.env.AWS_ACCESS_KEY_ID || '',
+  secretAccessKey: process.env.S3_SECRET_KEY || process.env.AWS_SECRET_ACCESS_KEY || '',
+  endpoint: process.env.S3_ENDPOINT || undefined,
+  cdnDomain: process.env.CDN_DOMAIN || process.env.S3_ENDPOINT || `https://${process.env.S3_BUCKET || process.env.S3_BUCKET_NAME}.s3.amazonaws.com`
 };
 
 /**
@@ -22,13 +23,21 @@ export class S3MediaService {
   private cdnDomain: string;
 
   constructor() {
-    this.s3Client = new S3Client({
+    const clientConfig: any = {
       region: S3_CONFIG.region,
       credentials: {
         accessKeyId: S3_CONFIG.accessKeyId,
         secretAccessKey: S3_CONFIG.secretAccessKey
       }
-    });
+    };
+
+    // Add custom endpoint for Wasabi or other S3-compatible services
+    if (S3_CONFIG.endpoint) {
+      clientConfig.endpoint = S3_CONFIG.endpoint;
+      clientConfig.forcePathStyle = true; // Required for some S3-compatible services
+    }
+
+    this.s3Client = new S3Client(clientConfig);
     this.bucketName = S3_CONFIG.bucket;
     this.cdnDomain = S3_CONFIG.cdnDomain;
   }
@@ -286,11 +295,21 @@ export const s3MediaService = new S3MediaService();
 
 // Helper function to check if S3 is configured
 export function isS3Configured(): boolean {
-  return !!(
+  const configured = !!(
     S3_CONFIG.accessKeyId &&
     S3_CONFIG.secretAccessKey &&
     S3_CONFIG.bucket
   );
+  
+  console.log('S3 Configuration check:', {
+    hasAccessKey: !!S3_CONFIG.accessKeyId,
+    hasSecretKey: !!S3_CONFIG.secretAccessKey,
+    hasBucket: !!S3_CONFIG.bucket,
+    hasEndpoint: !!S3_CONFIG.endpoint,
+    configured
+  });
+  
+  return configured;
 }
 
 // Helper function to get S3 configuration status
@@ -300,10 +319,10 @@ export function getS3ConfigStatus(): {
 } {
   const missing: string[] = [];
   
-  if (!S3_CONFIG.accessKeyId) missing.push('AWS_ACCESS_KEY_ID');
-  if (!S3_CONFIG.secretAccessKey) missing.push('AWS_SECRET_ACCESS_KEY');
-  if (!S3_CONFIG.bucket) missing.push('S3_BUCKET_NAME');
-  if (!S3_CONFIG.region) missing.push('AWS_REGION');
+  if (!S3_CONFIG.accessKeyId) missing.push('S3_ACCESS_KEY or AWS_ACCESS_KEY_ID');
+  if (!S3_CONFIG.secretAccessKey) missing.push('S3_SECRET_KEY or AWS_SECRET_ACCESS_KEY');
+  if (!S3_CONFIG.bucket) missing.push('S3_BUCKET or S3_BUCKET_NAME');
+  if (!S3_CONFIG.region) missing.push('S3_REGION or AWS_REGION');
 
   return {
     configured: missing.length === 0,

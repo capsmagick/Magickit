@@ -1,200 +1,472 @@
 <script lang="ts">
-	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
-	import { Badge } from '$lib/components/ui/badge';
-	import { Button } from '$lib/components/ui/button';
-	import { CheckCircle, AlertTriangle, XCircle, RefreshCw, Database, Server, Wifi, HardDrive } from '@lucide/svelte';
+  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { Badge } from '$lib/components/ui/badge';
+  import { Button } from '$lib/components/ui/button';
+  import { Alert, AlertDescription } from '$lib/components/ui/alert';
+  import { Separator } from '$lib/components/ui/separator';
+  import { 
+    Activity, 
+    AlertTriangle, 
+    CheckCircle, 
+    XCircle, 
+    Clock, 
+    Server, 
+    Database, 
+    HardDrive,
+    Cpu,
+    MemoryStick,
+    RefreshCw,
+    TrendingUp,
+    Users,
+    Zap
+  } from '@lucide/svelte';
+  import type { PageData } from './$types';
+  import { onMount } from 'svelte';
+  import { invalidateAll } from '$app/navigation';
 
-	let isRefreshing = $state(false);
+  interface Props {
+    data: PageData;
+  }
 
-	let systemStatus = $state({
-		overall: 'healthy',
-		lastUpdated: new Date(),
-		services: [
-			{
-				name: 'Database',
-				status: 'healthy',
-				responseTime: '12ms',
-				uptime: '99.9%',
-				icon: Database
-			},
-			{
-				name: 'Web Server',
-				status: 'healthy',
-				responseTime: '8ms',
-				uptime: '99.8%',
-				icon: Server
-			},
-			{
-				name: 'API Gateway',
-				status: 'warning',
-				responseTime: '45ms',
-				uptime: '98.5%',
-				icon: Wifi
-			},
-			{
-				name: 'File Storage',
-				status: 'healthy',
-				responseTime: '15ms',
-				uptime: '99.7%',
-				icon: HardDrive
-			}
-		],
-		metrics: {
-			totalRequests: '1,234,567',
-			errorRate: '0.02%',
-			avgResponseTime: '18ms',
-			activeUsers: '1,456'
-		}
-	});
+  let { data }: Props = $props();
 
-	function getStatusBadge(status: string) {
-		switch (status) {
-			case 'healthy':
-				return { variant: 'default' as const, text: 'Healthy', icon: CheckCircle, color: 'text-green-500' };
-			case 'warning':
-				return { variant: 'secondary' as const, text: 'Warning', icon: AlertTriangle, color: 'text-yellow-500' };
-			case 'critical':
-				return { variant: 'destructive' as const, text: 'Critical', icon: XCircle, color: 'text-red-500' };
-			default:
-				return { variant: 'outline' as const, text: status, icon: AlertTriangle, color: 'text-gray-500' };
-		}
-	}
+  // Auto-refresh every 30 seconds
+  let refreshInterval: NodeJS.Timeout;
+  let isRefreshing = $state(false);
 
-	function getOverallStatusBadge(status: string) {
-		switch (status) {
-			case 'healthy':
-				return { variant: 'default' as const, text: 'All Systems Operational', color: 'text-green-500' };
-			case 'warning':
-				return { variant: 'secondary' as const, text: 'Some Issues Detected', color: 'text-yellow-500' };
-			case 'critical':
-				return { variant: 'destructive' as const, text: 'System Issues', color: 'text-red-500' };
-			default:
-				return { variant: 'outline' as const, text: 'Unknown Status', color: 'text-gray-500' };
-		}
-	}
+  onMount(() => {
+    refreshInterval = setInterval(async () => {
+      if (!isRefreshing) {
+        await refreshData();
+      }
+    }, 30000);
 
-	async function handleRefresh() {
-		isRefreshing = true;
-		// Simulate API call
-		await new Promise(resolve => setTimeout(resolve, 1000));
-		systemStatus.lastUpdated = new Date();
-		isRefreshing = false;
-	}
+    return () => {
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+      }
+    };
+  });
+
+  async function refreshData() {
+    isRefreshing = true;
+    try {
+      await invalidateAll();
+    } finally {
+      isRefreshing = false;
+    }
+  }
+
+  async function forceMetricsCollection() {
+    isRefreshing = true;
+    try {
+      const response = await fetch('/api/admin/system/collect-metrics', {
+        method: 'POST'
+      });
+      
+      if (response.ok) {
+        await invalidateAll();
+      }
+    } catch (error) {
+      console.error('Error forcing metrics collection:', error);
+    } finally {
+      isRefreshing = false;
+    }
+  }
+
+  function getStatusColor(status: string) {
+    switch (status) {
+      case 'healthy':
+        return 'text-green-600 bg-green-50 border-green-200';
+      case 'warning':
+        return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      case 'critical':
+        return 'text-red-600 bg-red-50 border-red-200';
+      default:
+        return 'text-gray-600 bg-gray-50 border-gray-200';
+    }
+  }
+
+  function getStatusIcon(status: string) {
+    switch (status) {
+      case 'healthy':
+        return CheckCircle;
+      case 'warning':
+        return AlertTriangle;
+      case 'critical':
+        return XCircle;
+      default:
+        return Activity;
+    }
+  }
+
+  function formatUptime(seconds: number): string {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (days > 0) {
+      return `${days}d ${hours}h ${minutes}m`;
+    } else if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else {
+      return `${minutes}m`;
+    }
+  }
+
+  function formatBytes(bytes: number): string {
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    if (bytes === 0) return '0 B';
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+  }
+
+  let systemStatus = $derived(data.systemStatus);
+  let systemStats = $derived(data.systemStats);
+  let latestMetrics = $derived(data.latestMetrics);
+  let StatusIcon = $derived(getStatusIcon(systemStatus.status));
 </script>
 
 <svelte:head>
-	<title>System Status | System Health | Admin</title>
+  <title>System Status - Admin Dashboard</title>
 </svelte:head>
 
-<div class="space-y-6">
-	<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-		<div class="space-y-2">
-			<h1 class="text-2xl font-bold">System Status</h1>
-			<p class="text-muted-foreground">Monitor overall system health and service status</p>
-		</div>
-		<Button onclick={handleRefresh} disabled={isRefreshing} class="transition-colors duration-200">
-			<RefreshCw class="mr-2 h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
-			{isRefreshing ? 'Refreshing...' : 'Refresh Status'}
-		</Button>
-	</div>
+<div class="container mx-auto p-6 space-y-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold tracking-tight">System Status</h1>
+      <p class="text-muted-foreground">
+        Real-time system health monitoring and status overview
+      </p>
+    </div>
+    <div class="flex items-center gap-2">
+      <Button 
+        variant="outline" 
+        size="sm" 
+        onclick={refreshData}
+        disabled={isRefreshing}
+        class="transition-colors duration-200"
+      >
+        <RefreshCw class="h-4 w-4 {isRefreshing ? 'animate-spin' : ''}" />
+        Refresh
+      </Button>
+      <Button 
+        size="sm" 
+        onclick={forceMetricsCollection}
+        disabled={isRefreshing}
+        class="transition-colors duration-200"
+      >
+        <Zap class="h-4 w-4" />
+        Collect Metrics
+      </Button>
+    </div>
+  </div>
 
-	<!-- Overall Status -->
-	<Card>
-		<CardContent class="p-6">
-			<div class="flex items-center justify-between">
-				<div class="space-y-2">
-					<h2 class="text-xl font-semibold">Overall System Status</h2>
-					<p class="text-sm text-muted-foreground">
-						Last updated: {systemStatus.lastUpdated.toLocaleString()}
-					</p>
-				</div>
-				<div class="text-right">
-					{#if systemStatus.overall}
-						{@const overallStatus = getOverallStatusBadge(systemStatus.overall)}
-						<Badge variant={overallStatus.variant} class="text-sm">
-							{overallStatus.text}
-						</Badge>
-					{/if}
-				</div>
-			</div>
-		</CardContent>
-	</Card>
+  <!-- System Status Overview -->
+  <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+    <!-- Overall Status -->
+    <Card class="border-2 {getStatusColor(systemStatus.status)}">
+      <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle class="text-sm font-medium">System Status</CardTitle>
+        <StatusIcon class="h-4 w-4" />
+      </CardHeader>
+      <CardContent>
+        <div class="text-2xl font-bold capitalize">{systemStatus.status}</div>
+        <p class="text-xs text-muted-foreground">
+          Last check: {new Date(systemStatus.lastCheck).toLocaleTimeString()}
+        </p>
+      </CardContent>
+    </Card>
 
-	<!-- Service Status Grid -->
-	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-		{#each systemStatus.services as service}
-			{@const statusInfo = getStatusBadge(service.status)}
-			<Card>
-				<CardContent class="p-4">
-					<div class="space-y-3">
-						<div class="flex items-center justify-between">
-							<div class="flex items-center gap-2">
-								<service.icon class="h-5 w-5 text-muted-foreground" />
-								<h3 class="font-medium">{service.name}</h3>
-							</div>
-							<statusInfo.icon class="h-4 w-4 {statusInfo.color}" />
-						</div>
-						<div class="space-y-2">
-							<Badge variant={statusInfo.variant} class="text-xs">
-								{statusInfo.text}
-							</Badge>
-							<div class="space-y-1 text-sm text-muted-foreground">
-								<div class="flex justify-between">
-									<span>Response:</span>
-									<span>{service.responseTime}</span>
-								</div>
-								<div class="flex justify-between">
-									<span>Uptime:</span>
-									<span>{service.uptime}</span>
-								</div>
-							</div>
-						</div>
-					</div>
-				</CardContent>
-			</Card>
-		{/each}
-	</div>
+    <!-- Uptime -->
+    <Card>
+      <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle class="text-sm font-medium">System Uptime</CardTitle>
+        <Clock class="h-4 w-4 text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        <div class="text-2xl font-bold">{formatUptime(systemStatus.uptime)}</div>
+        <p class="text-xs text-muted-foreground">
+          Since last restart
+        </p>
+      </CardContent>
+    </Card>
 
-	<!-- System Metrics -->
-	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-		<Card>
-			<CardHeader class="pb-2">
-				<CardTitle class="text-sm font-medium text-muted-foreground">Total Requests</CardTitle>
-			</CardHeader>
-			<CardContent class="pt-0">
-				<div class="text-2xl font-bold">{systemStatus.metrics.totalRequests}</div>
-				<p class="text-xs text-muted-foreground">Last 24 hours</p>
-			</CardContent>
-		</Card>
+    <!-- Active Alerts -->
+    <Card>
+      <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle class="text-sm font-medium">Active Alerts</CardTitle>
+        <AlertTriangle class="h-4 w-4 text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        <div class="text-2xl font-bold">{systemStats.activeAlerts}</div>
+        <p class="text-xs text-muted-foreground">
+          {systemStats.criticalAlerts} critical
+        </p>
+      </CardContent>
+    </Card>
 
-		<Card>
-			<CardHeader class="pb-2">
-				<CardTitle class="text-sm font-medium text-muted-foreground">Error Rate</CardTitle>
-			</CardHeader>
-			<CardContent class="pt-0">
-				<div class="text-2xl font-bold text-green-600">{systemStatus.metrics.errorRate}</div>
-				<p class="text-xs text-muted-foreground">Last 24 hours</p>
-			</CardContent>
-		</Card>
+    <!-- Health Score -->
+    <Card>
+      <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle class="text-sm font-medium">Health Score</CardTitle>
+        <TrendingUp class="h-4 w-4 text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        <div class="text-2xl font-bold">{systemStats.averageHealthScore}%</div>
+        <p class="text-xs text-muted-foreground">
+          Average over last 10 checks
+        </p>
+      </CardContent>
+    </Card>
+  </div>
 
-		<Card>
-			<CardHeader class="pb-2">
-				<CardTitle class="text-sm font-medium text-muted-foreground">Avg Response Time</CardTitle>
-			</CardHeader>
-			<CardContent class="pt-0">
-				<div class="text-2xl font-bold">{systemStatus.metrics.avgResponseTime}</div>
-				<p class="text-xs text-muted-foreground">Last 24 hours</p>
-			</CardContent>
-		</Card>
+  <!-- Current System Metrics -->
+  {#if latestMetrics}
+    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <!-- CPU Usage -->
+      <Card>
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle class="text-sm font-medium">CPU Usage</CardTitle>
+          <Cpu class="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div class="text-2xl font-bold">{latestMetrics.cpu.usage.toFixed(1)}%</div>
+          <div class="mt-2 space-y-1">
+            <div class="flex justify-between text-xs">
+              <span>Load Average:</span>
+              <span>{latestMetrics.cpu.loadAverage.map(l => l.toFixed(2)).join(', ')}</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                class="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                style="width: {Math.min(100, latestMetrics.cpu.usage)}%"
+              ></div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-		<Card>
-			<CardHeader class="pb-2">
-				<CardTitle class="text-sm font-medium text-muted-foreground">Active Users</CardTitle>
-			</CardHeader>
-			<CardContent class="pt-0">
-				<div class="text-2xl font-bold">{systemStatus.metrics.activeUsers}</div>
-				<p class="text-xs text-muted-foreground">Currently online</p>
-			</CardContent>
-		</Card>
-	</div>
+      <!-- Memory Usage -->
+      <Card>
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle class="text-sm font-medium">Memory Usage</CardTitle>
+          <MemoryStick class="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div class="text-2xl font-bold">{latestMetrics.memory.percentage.toFixed(1)}%</div>
+          <div class="mt-2 space-y-1">
+            <div class="flex justify-between text-xs">
+              <span>Used:</span>
+              <span>{formatBytes(latestMetrics.memory.used)}</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span>Total:</span>
+              <span>{formatBytes(latestMetrics.memory.total)}</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                class="bg-green-600 h-2 rounded-full transition-all duration-300" 
+                style="width: {Math.min(100, latestMetrics.memory.percentage)}%"
+              ></div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- Disk Usage -->
+      <Card>
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle class="text-sm font-medium">Disk Usage</CardTitle>
+          <HardDrive class="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div class="text-2xl font-bold">{latestMetrics.disk.percentage.toFixed(1)}%</div>
+          <div class="mt-2 space-y-1">
+            <div class="flex justify-between text-xs">
+              <span>Used:</span>
+              <span>{formatBytes(latestMetrics.disk.used)}</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span>Total:</span>
+              <span>{formatBytes(latestMetrics.disk.total)}</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                class="bg-purple-600 h-2 rounded-full transition-all duration-300" 
+                style="width: {Math.min(100, latestMetrics.disk.percentage)}%"
+              ></div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- Database Performance -->
+      <Card>
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle class="text-sm font-medium">Database</CardTitle>
+          <Database class="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div class="text-2xl font-bold">{latestMetrics.database.connections}</div>
+          <div class="mt-2 space-y-1">
+            <div class="flex justify-between text-xs">
+              <span>Connections:</span>
+              <span>{latestMetrics.database.connections}</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span>Query Time:</span>
+              <span>{latestMetrics.database.queryTime.toFixed(1)}ms</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span>Slow Queries:</span>
+              <span>{latestMetrics.database.slowQueries}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- Application Performance -->
+      <Card>
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle class="text-sm font-medium">Application</CardTitle>
+          <Server class="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div class="text-2xl font-bold">{latestMetrics.application.responseTime.toFixed(0)}ms</div>
+          <div class="mt-2 space-y-1">
+            <div class="flex justify-between text-xs">
+              <span>Response Time:</span>
+              <span>{latestMetrics.application.responseTime.toFixed(0)}ms</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span>Error Rate:</span>
+              <span>{latestMetrics.application.errorRate.toFixed(2)}%</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span>Requests/min:</span>
+              <span>{latestMetrics.application.requestsPerMinute}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- Active Users -->
+      <Card>
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle class="text-sm font-medium">Active Users</CardTitle>
+          <Users class="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div class="text-2xl font-bold">{latestMetrics.application.activeUsers}</div>
+          <div class="mt-2 space-y-1">
+            <div class="flex justify-between text-xs">
+              <span>Current Sessions:</span>
+              <span>{latestMetrics.application.activeUsers}</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span>Uptime:</span>
+              <span>{formatUptime(latestMetrics.application.uptime)}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  {/if}
+
+  <!-- Active Alerts -->
+  {#if systemStatus.alerts.length > 0}
+    <Card>
+      <CardHeader>
+        <CardTitle class="flex items-center gap-2">
+          <AlertTriangle class="h-5 w-5 text-yellow-600" />
+          Active Alerts ({systemStatus.alerts.length})
+        </CardTitle>
+        <CardDescription>
+          Current system alerts requiring attention
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div class="space-y-3">
+          {#each systemStatus.alerts as alert}
+            <Alert class="border-l-4 {alert.type === 'critical' ? 'border-l-red-500' : alert.type === 'error' ? 'border-l-orange-500' : 'border-l-yellow-500'}">
+              <AlertDescription class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <Badge variant={alert.type === 'critical' ? 'destructive' : 'secondary'}>
+                    {alert.type}
+                  </Badge>
+                  <span class="font-medium">{alert.title || alert.message}</span>
+                  <span class="text-sm text-muted-foreground">
+                    {new Date(alert.createdAt).toLocaleString()}
+                  </span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <Button variant="outline" size="sm">
+                    Acknowledge
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    Resolve
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          {/each}
+        </div>
+      </CardContent>
+    </Card>
+  {:else}
+    <Card>
+      <CardHeader>
+        <CardTitle class="flex items-center gap-2">
+          <CheckCircle class="h-5 w-5 text-green-600" />
+          No Active Alerts
+        </CardTitle>
+        <CardDescription>
+          All systems are operating normally
+        </CardDescription>
+      </CardHeader>
+    </Card>
+  {/if}
+
+  <!-- Quick Actions -->
+  <Card>
+    <CardHeader>
+      <CardTitle>Quick Actions</CardTitle>
+      <CardDescription>
+        Common system management tasks
+      </CardDescription>
+    </CardHeader>
+    <CardContent>
+      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Button variant="outline" class="h-auto p-4 flex flex-col items-center gap-2">
+          <RefreshCw class="h-6 w-6" />
+          <span class="text-sm">Refresh Metrics</span>
+        </Button>
+        <Button variant="outline" class="h-auto p-4 flex flex-col items-center gap-2">
+          <Database class="h-6 w-6" />
+          <span class="text-sm">Database Status</span>
+        </Button>
+        <Button variant="outline" class="h-auto p-4 flex flex-col items-center gap-2">
+          <Server class="h-6 w-6" />
+          <span class="text-sm">Service Health</span>
+        </Button>
+        <Button variant="outline" class="h-auto p-4 flex flex-col items-center gap-2">
+          <Activity class="h-6 w-6" />
+          <span class="text-sm">View Logs</span>
+        </Button>
+      </div>
+    </CardContent>
+  </Card>
+
+  <!-- Last Updated -->
+  <div class="text-center text-sm text-muted-foreground">
+    Last updated: {new Date(data.timestamp).toLocaleString()}
+    {#if isRefreshing}
+      <span class="ml-2 inline-flex items-center gap-1">
+        <RefreshCw class="h-3 w-3 animate-spin" />
+        Refreshing...
+      </span>
+    {/if}
+  </div>
 </div>

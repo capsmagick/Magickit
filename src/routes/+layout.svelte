@@ -2,6 +2,7 @@
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import { ModeWatcher } from 'mode-watcher';
+	import { Toaster } from '$lib/components/ui/sonner';
 	import Header from '$lib/components/header.svelte';
 	import Footer from '$lib/components/footer.svelte';
 	import SkipNavigation from '$lib/components/SkipNavigation.svelte';
@@ -31,3 +32,6 @@
 {#if !$page.url.pathname.startsWith('/admin')}
 	<Footer />
 {/if}
+
+<!-- Toast notifications -->
+<Toaster />

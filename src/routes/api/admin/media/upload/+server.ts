@@ -5,6 +5,7 @@ import { MediaFilesCollection } from '$lib/db/collections/mediaFiles';
 import { s3MediaService, isS3Configured } from '$lib/services/s3-upload';
 import { ObjectId } from 'mongodb';
 import sharp from 'sharp';
+import { auth } from '$lib/auth/auth';
 
 // Maximum file sizes by type (in bytes)
 const MAX_FILE_SIZES = {
@@ -29,8 +30,25 @@ const SUPPORTED_TYPES = [
 
 export const POST: RequestHandler = async ({ request, locals }) => {
   try {
-    // Check authentication and permissions
-    if (!locals.session?.user) {
+    // Try to get session directly from Better Auth
+    const session = await auth.api.getSession({
+      headers: request.headers
+    });
+
+    console.log('Session debug:', {
+      directSession: !!session,
+      directUser: !!session?.user,
+      localsSession: !!locals.session,
+      localsUser: !!locals.user,
+      sessionUserId: session?.user?.id || 'no id',
+      userRole: session?.user?.role || locals.user?.role || 'no role'
+    });
+
+    // Check authentication using direct session first, fallback to locals
+    const user = session?.user || locals.session?.user || locals.user;
+    
+    if (!user) {
+      console.log('Authentication failed - no user found');
       return json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -186,7 +204,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       altText: '',
       caption: '',
       tags: [],
-      uploadedBy: new ObjectId(locals.session.user.id)
+      uploadedBy: new ObjectId(user.id)
     });
 
     // In a real implementation, you would:

@@ -9,7 +9,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { toast } from 'svelte-sonner';
 	import { 
-		Loader2,
+		LoaderCircle,
 		Type,
 		Hash,
 		Calendar,
@@ -24,6 +24,7 @@
 	} from '@lucide/svelte';
 	import type { ContentType, ContentInstance, ContentField } from '$lib/db/models';
 	import { CONTENT_FIELD_TYPES } from '$lib/db/models';
+	import MediaPicker from '$lib/components/MediaPicker.svelte';
 
 	interface Props {
 		contentTypes: ContentType[];
@@ -611,6 +612,32 @@
 									</div>
 								{/each}
 							</div>
+						{:else if field.type === 'image'}
+							<MediaPicker
+								value={formData.data[field.name]}
+								multiple={false}
+								accept={['image/*']}
+								allowUrl={true}
+								placeholder="Select images..."
+								disabled={submitting}
+								required={field.required}
+								onValueChange={(value) => {
+									formData.data[field.name] = value;
+								}}
+							/>
+						{:else if field.type === 'video'}
+							<MediaPicker
+								value={formData.data[field.name]}
+								multiple={false}
+								accept={['video/*']}
+								allowUrl={true}
+								placeholder="Select videos..."
+								disabled={submitting}
+								required={field.required}
+								onValueChange={(value) => {
+									formData.data[field.name] = value;
+								}}
+							/>
 						{:else}
 							<Input
 								bind:value={formData.data[field.name]}
@@ -684,7 +711,7 @@
 		</Button>
 		<Button onclick={handleSubmit} disabled={submitting} class="gap-2">
 			{#if submitting}
-				<Loader2 class="h-4 w-4 animate-spin" />
+				<LoaderCircle class="h-4 w-4 animate-spin" />
 			{/if}
 			{contentComponent ? 'Update' : 'Create'} Component
 		</Button>

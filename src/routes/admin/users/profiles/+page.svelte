@@ -12,20 +12,17 @@
 	import { Avatar, AvatarFallback, AvatarImage } from '$lib/components/ui/avatar';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { Textarea } from '$lib/components/ui/textarea';
+	import MediaPicker from '$lib/components/MediaPicker.svelte';
 	import { authClient } from '$lib/auth/auth-client';
 	import { goto } from '$app/navigation';
 	import {
 		Users,
 		Search,
-		Filter,
 		Edit,
 		Save,
-		X,
-		Loader2,
+		LoaderCircle,
 		AlertCircle,
 		CheckCircle2,
-		User,
-		Mail,
 		Calendar,
 		MapPin,
 		Globe,
@@ -33,8 +30,7 @@
 		Linkedin,
 		Github,
 		Settings,
-		Activity,
-		Clock
+		Activity
 	} from '@lucide/svelte';
 
 	// State management with proper $state() declarations
@@ -63,6 +59,7 @@
 		bio: '',
 		location: '',
 		website: '',
+		image: null as any, // Profile image
 		socialLinks: {
 			twitter: '',
 			linkedin: '',
@@ -201,6 +198,7 @@
 			bio: user.bio || '',
 			location: user.location || '',
 			website: user.website || '',
+			image: user.image || null,
 			socialLinks: {
 				twitter: user.socialLinks?.twitter || '',
 				linkedin: user.socialLinks?.linkedin || '',
@@ -368,7 +366,7 @@
 	<div class="space-y-4">
 		{#if isLoading}
 			<div class="flex justify-center py-12">
-				<Loader2 class="h-8 w-8 animate-spin text-primary" />
+				<LoaderCircle class="h-8 w-8 animate-spin text-primary" />
 			</div>
 		{:else if paginatedUsers.length === 0}
 			<div class="text-center py-12 space-y-4">
@@ -565,6 +563,22 @@ onclick={() => goToPage(currentPage - 1)}
 			<!-- Basic Information -->
 			<div class="space-y-4">
 				<h3 class="text-lg font-semibold">Basic Information</h3>
+				
+				<!-- Profile Image -->
+				<div class="space-y-2">
+					<Label class="text-sm font-medium">Profile Image</Label>
+					<MediaPicker
+						value={profileData.image}
+						accept={['image/*']}
+						allowUrl={true}
+						placeholder="Select profile image..."
+						disabled={isSubmitting}
+						onValueChange={(value) => {
+							profileData.image = value;
+						}}
+					/>
+				</div>
+				
 				<div class="grid grid-cols-2 gap-4">
 					<div class="space-y-2">
 						<Label for="edit-name" class="text-sm font-medium">Full Name</Label>
@@ -712,7 +726,7 @@ onclick={() => goToPage(currentPage - 1)}
 				class="transition-colors duration-200"
 			>
 				{#if isSubmitting}
-					<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+					<LoaderCircle class="mr-2 h-4 w-4 animate-spin" />
 					Saving...
 				{:else}
 					<Save class="mr-2 h-4 w-4" />
@@ -808,7 +822,7 @@ onclick={() => goToPage(currentPage - 1)}
 				class="transition-colors duration-200"
 			>
 				{#if isSubmitting}
-					<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+					<LoaderCircle class="mr-2 h-4 w-4 animate-spin" />
 					Applying...
 				{:else}
 					Apply to {selectedUsers.length} Users

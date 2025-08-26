@@ -8,6 +8,7 @@
 	import QuickColors from './components/toolbar/QuickColors.svelte';
 	import SearchAndReplace from './components/toolbar/SearchAndReplace.svelte';
 	import ToolBarIcon from './components/ToolBarIcon.svelte';
+	import MediaBrowserButton from './menus/MediaBrowserButton.svelte';
 
 	const { editor, class: className, excludedCommands, children }: EdraToolbarProps = $props();
 
@@ -32,6 +33,7 @@
 		{/each}
 		<FontSize {editor} />
 		<QuickColors {editor} />
+		<MediaBrowserButton {editor} />
 		<SearchAndReplace {editor} />
 	{/if}
 </div>

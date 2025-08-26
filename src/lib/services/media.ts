@@ -17,6 +17,8 @@ import {
   DEFAULT_IMAGE_VARIANTS,
   MEDIA_TYPES
 } from '$lib/db/models';
+import { cacheService, CacheKeys, CacheInvalidation } from './cache';
+import { cdnService } from './cdn';
 
 // ============================================================================
 // Media Management Service with Sharp Integration
@@ -513,7 +515,7 @@ export class MediaManagementService {
   }
 
   /**
-   * Update a media file
+   * Update a media file with cache invalidation
    */
   static async updateMediaFile(
     id: string,
@@ -526,6 +528,11 @@ export class MediaManagementService {
       }
 
       const objectId = new ObjectId(id);
+      const existingFile = await mediaFilesCollection.findOne({ _id: objectId });
+      
+      if (!existingFile) {
+        throw new Error('Media file not found');
+      }
 
       // If moving to a different folder, validate the folder exists
       if (updates.folderId) {
@@ -551,6 +558,14 @@ export class MediaManagementService {
         }
       );
 
+      // Invalidate cache and CDN when media is updated
+      if (result.modifiedCount > 0) {
+        await Promise.all([
+          CacheInvalidation.invalidateMedia(id, existingFile.folderId?.toString()),
+          cdnService.invalidateMediaCache(existingFile.s3Key)
+        ]);
+      }
+
       return result.modifiedCount > 0;
     } catch (error) {
       console.error('Error updating media file:', error);
@@ -559,7 +574,7 @@ export class MediaManagementService {
   }
 
   /**
-   * Delete a media file
+   * Delete a media file with cache invalidation
    */
   static async deleteMediaFile(id: string, deletedBy: string): Promise<boolean> {
     try {
@@ -568,7 +583,21 @@ export class MediaManagementService {
       }
 
       const objectId = new ObjectId(id);
+      const mediaFile = await mediaFilesCollection.findOne({ _id: objectId });
+      
+      if (!mediaFile) {
+        throw new Error('Media file not found');
+      }
+
       const result = await mediaFilesCollection.deleteOne({ _id: objectId });
+      
+      // Invalidate cache and CDN when media is deleted
+      if (result.deletedCount > 0) {
+        await Promise.all([
+          CacheInvalidation.invalidateMedia(id, mediaFile.folderId?.toString()),
+          cdnService.invalidateMediaCache(mediaFile.s3Key)
+        ]);
+      }
       
       // Note: In a real implementation, you would also delete the actual files from S3 here
       

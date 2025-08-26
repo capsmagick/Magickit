@@ -15,6 +15,8 @@ import {
     generateSlug,
     isValidObjectId
 } from '$lib/db/models';
+import { cacheService, CacheKeys, CacheInvalidation } from './cache';
+import { performanceService } from './performance';
 
 // ============================================================================
 // Content Management Service
@@ -224,7 +226,7 @@ export class ContentManagementService {
     }
 
     /**
-     * Update a content instance
+     * Update a content instance with cache invalidation
      */
     static async updateContentInstance(
         id: string,
@@ -288,6 +290,19 @@ export class ContentManagementService {
                     updatedBy,
                     changeNote || 'Content updated'
                 );
+            }
+
+            // Invalidate cache for updated content
+            if (result.modifiedCount > 0) {
+                await CacheInvalidation.invalidateContent(
+                    updates.slug || existingContent.slug,
+                    existingContent.contentTypeId.toString()
+                );
+                
+                // If slug changed, also invalidate old slug
+                if (updates.slug && updates.slug !== existingContent.slug) {
+                    await CacheInvalidation.invalidateContent(existingContent.slug);
+                }
             }
 
             return result.modifiedCount > 0;
@@ -390,11 +405,20 @@ export class ContentManagementService {
     }
 
     /**
-     * Get content instance by slug (published only)
+     * Get content instance by slug (published only) with caching
      */
     static async getContentInstanceBySlug(slug: string): Promise<ContentInstance | null> {
         try {
-            return await contentInstancesCollection.findOne({
+            // Try cache first
+            const cacheKey = CacheKeys.content(slug);
+            const cached = await cacheService.get<ContentInstance>(cacheKey);
+            
+            if (cached) {
+                return cached;
+            }
+
+            // Cache miss - query database
+            const content = await contentInstancesCollection.findOne({
                 slug,
                 status: 'published',
                 $or: [
@@ -402,6 +426,13 @@ export class ContentManagementService {
                     { publishedAt: { $exists: false } }
                 ]
             });
+
+            // Cache the result (including null results to prevent repeated queries)
+            if (content) {
+                await cacheService.set(cacheKey, content, 15 * 60 * 1000); // 15 minutes
+            }
+
+            return content;
         } catch (error) {
             console.error('Error getting content instance by slug:', error);
             return null;
@@ -409,7 +440,7 @@ export class ContentManagementService {
     }
 
     /**
-     * Publish a content instance
+     * Publish a content instance with cache invalidation
      */
     static async publishContentInstance(
         id: string,
@@ -422,6 +453,12 @@ export class ContentManagementService {
             }
 
             const objectId = new ObjectId(id);
+            const content = await contentInstancesCollection.findOne({ _id: objectId });
+            
+            if (!content) {
+                throw new Error('Content instance not found');
+            }
+
             const publishDate = publishedAt || new Date();
 
             const result = await contentInstancesCollection.updateOne(
@@ -435,6 +472,14 @@ export class ContentManagementService {
                     }
                 }
             );
+
+            // Invalidate cache when content is published
+            if (result.modifiedCount > 0) {
+                await CacheInvalidation.invalidateContent(
+                    content.slug,
+                    content.contentTypeId.toString()
+                );
+            }
 
             return result.modifiedCount > 0;
         } catch (error) {
