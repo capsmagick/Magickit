@@ -405,8 +405,8 @@
                     </div>
                   </TableCell>
                   <TableCell>
+                    {@const ActionIcon = getActionIcon(log.action)}
                     <div class="flex items-center gap-2">
-                      {@const ActionIcon = getActionIcon(log.action)}
                       <ActionIcon class="h-4 w-4 text-muted-foreground" />
                       <span class="font-mono text-sm">{log.action}</span>
                     </div>
@@ -513,13 +513,15 @@
           
           <div class="space-y-2">
             <Label>Status</Label>
-            <div>
+            {#if selectedLog}
               {@const SuccessIcon = getSuccessIcon(selectedLog.success)}
-              <Badge variant={getSuccessVariant(selectedLog.success)} class="gap-1">
-                <SuccessIcon class="h-3 w-3" />
-                {selectedLog.success ? 'Success' : 'Failed'}
-              </Badge>
-            </div>
+              <div>
+                <Badge variant={getSuccessVariant(selectedLog.success)} class="gap-1">
+                  <SuccessIcon class="h-3 w-3" />
+                  {selectedLog.success ? 'Success' : 'Failed'}
+                </Badge>
+              </div>
+            {/if}
           </div>
           
           <div class="space-y-2">

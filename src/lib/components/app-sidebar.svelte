@@ -21,7 +21,6 @@
 			title: 'Dashboard',
 			url: '/admin',
 			icon: LayoutDashboard,
-			isActive: true,
 			items: [
 				{ title: 'Overview', url: '/admin' },
 				{ title: 'Analytics', url: '/admin' },
@@ -94,24 +93,24 @@
 		},
 		{
 			title: 'Documentation',
-			url: '#',
+			url: '/admin/docs',
 			icon: BookOpenIcon,
 			items: [
 				{
 					title: 'Introduction',
-					url: '#'
+					url: '/admin/docs/introduction'
 				},
 				{
 					title: 'Get Started',
-					url: '#'
+					url: '/admin/docs/getting-started'
 				},
 				{
 					title: 'Tutorials',
-					url: '#'
+					url: '/admin/docs/tutorials'
 				},
 				{
 					title: 'Changelog',
-					url: '#'
+					url: '/admin/docs/changelog'
 				}
 			],
 			requiresPermission: false // Documentation is always accessible
@@ -276,14 +275,19 @@
 	});
 </script>
 
-<Sidebar.Root {collapsible} {...restProps}>
+<Sidebar.Root 
+	{collapsible} 
+	{...restProps}
+	role="navigation"
+	aria-label="Main navigation sidebar"
+>
 	<Sidebar.Header>
 		<TeamSwitcher teams={data().teams} />
 	</Sidebar.Header>
 	<Sidebar.Content>
 		<NavMain items={data().navMain} />
 	</Sidebar.Content>
-	<Sidebar.Footer>
+	<Sidebar.Footer role="contentinfo" aria-label="User settings and profile">
 		<LightSwitch />
 		<NavUser {user} />
 	</Sidebar.Footer>
