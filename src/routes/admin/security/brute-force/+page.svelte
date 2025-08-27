@@ -169,6 +169,9 @@
 	});
 
 	const filteredAttempts = $derived.by(() => {
+		if (!recentAttempts || !Array.isArray(recentAttempts)) {
+			return [];
+		}
 		if (!searchTerm) return recentAttempts.slice(0, 10);
 		return recentAttempts.filter(attempt => 
 			attempt.ip.toLowerCase().includes(searchTerm.toLowerCase()) ||

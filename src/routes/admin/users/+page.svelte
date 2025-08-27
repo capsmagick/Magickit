@@ -109,10 +109,15 @@
 	});
 
 	// Paginated users - computed values
-	let paginatedUsers = $derived(filteredUsers.slice(
-		(currentPage - 1) * itemsPerPage,
-		currentPage * itemsPerPage
-	));
+	let paginatedUsers = $derived(() => {
+		if (!filteredUsers || !Array.isArray(filteredUsers)) {
+			return [];
+		}
+		return filteredUsers.slice(
+			(currentPage - 1) * itemsPerPage,
+			currentPage * itemsPerPage
+		);
+	});
 
 	let totalPages = $derived(Math.ceil(totalItems / itemsPerPage));
 
@@ -129,10 +134,22 @@
 
 	async function loadUsers() {
 		try {
-			// For now, we'll use the existing API endpoint we created for RBAC
-			const response = await fetch('/api/admin/users');
+			// Build query parameters
+			const params = new URLSearchParams({
+				page: currentPage.toString(),
+				limit: itemsPerPage.toString(),
+				search: searchTerm,
+				role: roleFilter,
+				status: statusFilter,
+				sortBy: 'createdAt',
+				sortOrder: 'desc'
+			});
+
+			const response = await fetch(`/api/admin/users?${params}`);
 			if (response.ok) {
-				users = await response.json();
+				const result = await response.json();
+				users = result.users || [];
+				totalItems = result.pagination?.total || 0;
 			} else {
 				throw new Error('Failed to load users');
 			}

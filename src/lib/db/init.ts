@@ -1,6 +1,8 @@
 import { createIndexes } from './collections';
 import { RBACService } from './rbac';
 import { initializeDynamicContentSystem, verifyDynamicContentSetup } from './init-dynamic-content';
+import { userProfilesCollection } from './collections/userProfiles';
+import { auditLogsCollection } from './collections/auditLogs';
 
 /**
  * Initialize the database with indexes and default data
@@ -21,6 +23,13 @@ export async function initializeDatabase() {
     // Initialize dynamic content management system
     await initializeDynamicContentSystem();
     console.log('✓ Dynamic content management system initialized');
+    
+    // Initialize user management collections
+    await Promise.all([
+      userProfilesCollection,
+      auditLogsCollection
+    ]);
+    console.log('✓ User management collections initialized');
     
     console.log('Database initialization completed successfully');
   } catch (error) {

@@ -56,7 +56,14 @@ export class SystemAlertsCollection {
             const alerts = await cursor.toArray();
             const total = await collection.countDocuments(filter);
 
-            return { alerts, total };
+            // Serialize ObjectIds to strings for SvelteKit compatibility
+            const serializedAlerts = alerts.map(alert => ({
+                ...alert,
+                _id: alert._id.toString(),
+                acknowledgedBy: alert.acknowledgedBy?.toString()
+            }));
+
+            return { alerts: serializedAlerts, total };
         } catch (error) {
             console.error('Error fetching system alerts:', error);
             throw new Error('Failed to fetch system alerts');
@@ -73,7 +80,14 @@ export class SystemAlertsCollection {
             const objectId = typeof id === 'string' ? new ObjectId(id) : id;
             const alert = await collection.findOne({ _id: objectId });
 
-            return alert;
+            if (!alert) return null;
+
+            // Serialize ObjectIds to strings for SvelteKit compatibility
+            return {
+                ...alert,
+                _id: alert._id.toString(),
+                acknowledgedBy: alert.acknowledgedBy?.toString()
+            };
         } catch (error) {
             console.error('Error fetching system alert:', error);
             throw new Error('Failed to fetch system alert');
@@ -88,8 +102,9 @@ export class SystemAlertsCollection {
             const collection = dbClient.collection<SystemAlert>(COLLECTION_NAME);
 
             const now = new Date();
-            const newAlert: SystemAlert = {
-                _id: new ObjectId(),
+            const alertId = new ObjectId();
+            const newAlert = {
+                _id: alertId,
                 ...alertData,
                 createdAt: now
             };
@@ -100,7 +115,12 @@ export class SystemAlertsCollection {
                 throw new Error('Failed to create system alert');
             }
 
-            return newAlert;
+            // Return serialized alert for SvelteKit compatibility
+            return {
+                ...newAlert,
+                _id: alertId.toString(),
+                acknowledgedBy: newAlert.acknowledgedBy?.toString()
+            };
         } catch (error) {
             console.error('Error creating system alert:', error);
             if (error instanceof Error) {

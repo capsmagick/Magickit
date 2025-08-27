@@ -27,7 +27,7 @@ export const enhancedRBAC = (): BetterAuthPlugin => {
         method: 'POST',
         handler: async (request) => {
           try {
-            const { userId, resource, action } = await request.json();
+            const { userId, resource, action, userRole } = await request.json();
             
             if (!userId || !resource || !action) {
               return new Response(
@@ -36,7 +36,7 @@ export const enhancedRBAC = (): BetterAuthPlugin => {
               );
             }
 
-            const hasPermission = await RBACService.userHasPermission(userId, resource, action);
+            const hasPermission = await RBACService.userHasPermission(userId, resource, action, userRole);
             
             return new Response(
               JSON.stringify({ hasPermission }),
@@ -56,7 +56,7 @@ export const enhancedRBAC = (): BetterAuthPlugin => {
         method: 'POST',
         handler: async (request) => {
           try {
-            const { userId } = await request.json();
+            const { userId, userRole } = await request.json();
             
             if (!userId) {
               return new Response(
@@ -65,7 +65,7 @@ export const enhancedRBAC = (): BetterAuthPlugin => {
               );
             }
 
-            const permissions = await RBACService.getUserPermissions(userId);
+            const permissions = await RBACService.getUserPermissions(userId, userRole);
             
             return new Response(
               JSON.stringify({ permissions }),
@@ -225,11 +225,15 @@ export const enhancedRBAC = (): BetterAuthPlugin => {
     hooks: {
       user: {
         created: async (user) => {
-          // When a user is created, assign default user role
+          // When a user is created, assign appropriate RBAC roles
           try {
-            // The Better Auth admin plugin already handles basic role assignment
-            // We can add additional logic here if needed
-            console.log(`User created: ${user.id}`);
+            console.log(`User created: ${user.id} with role: ${user.role}`);
+            
+            // If user is created with admin role, ensure admin RBAC role is assigned
+            if (user.role === 'admin') {
+              await RBACService.ensureAdminRoleAssignment(user.id);
+              console.log(`Admin RBAC role assigned to user: ${user.id}`);
+            }
           } catch (error) {
             console.error('Error in user created hook:', error);
           }
@@ -274,9 +278,10 @@ export function requirePermission(resource: string, action: string) {
 export async function checkPermission(
   userId: string, 
   resource: string, 
-  action: string
+  action: string,
+  userRole?: string
 ): Promise<boolean> {
-  return await RBACService.userHasPermission(userId, resource, action);
+  return await RBACService.userHasPermission(userId, resource, action, userRole);
 }
 
 /**

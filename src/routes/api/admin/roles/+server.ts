@@ -1,96 +1,90 @@
-import { json } from '@sveltejs/kit';
-import type { RequestHandler } from './$types';
-import { rolesCollection, permissionsCollection } from '$lib/db/collections';
+import { json, error } from '@sveltejs/kit';
 import { RBACService } from '$lib/db/rbac';
-import { ObjectId } from 'mongodb';
-import { auth } from '$lib/auth/auth';
+import { rolesCollection, permissionsCollection, userRolesCollection } from '$lib/db/collections';
+import { requirePermission } from '$lib/auth/rbac-middleware';
+import type { RequestHandler } from './$types';
 
 // GET /api/admin/roles - Get all roles
-export const GET: RequestHandler = async ({ request }) => {
-	try {
-		// Check authentication and admin role
-		const session = await auth.api.getSession({ headers: request.headers });
-		if (!session?.user || session.user.role !== 'admin') {
-			return json({ error: 'Unauthorized' }, { status: 401 });
-		}
+export const GET: RequestHandler = async (event) => {
+  // Check permission
+  await requirePermission('role', 'read')(event);
 
-		// Get all roles with populated permissions
-		const roles = await rolesCollection.find({}).sort({ createdAt: -1 }).toArray();
-		
-		// Convert ObjectIds to strings for JSON serialization
-		const serializedRoles = roles.map(role => ({
-			...role,
-			_id: role._id.toString(),
-			permissions: role.permissions.map(p => p.toString())
-		}));
+  try {
+    // Get all roles with their permissions populated
+    const roles = await rolesCollection.find({}).toArray();
+    
+    // Get permissions for each role
+    const rolesWithPermissions = await Promise.all(
+      roles.map(async (role) => {
+        const permissions = await permissionsCollection
+          .find({ _id: { $in: role.permissions } })
+          .toArray();
+        
+        // Get user count for this role
+        const userCount = await userRolesCollection.countDocuments({ roleId: role._id });
+        
+        return {
+          ...role,
+          permissions,
+          userCount
+        };
+      })
+    );
 
-		return json(serializedRoles);
-	} catch (error) {
-		console.error('Error fetching roles:', error);
-		return json({ error: 'Internal server error' }, { status: 500 });
-	}
+    return json(rolesWithPermissions);
+  } catch (err) {
+    console.error('Error fetching roles:', err);
+    throw error(500, 'Failed to fetch roles');
+  }
 };
 
-// POST /api/admin/roles - Create a new role
-export const POST: RequestHandler = async ({ request }) => {
-	try {
-		// Check authentication and admin role
-		const session = await auth.api.getSession({ headers: request.headers });
-		if (!session?.user || session.user.role !== 'admin') {
-			return json({ error: 'Unauthorized' }, { status: 401 });
-		}
+// POST /api/admin/roles - Create new role
+export const POST: RequestHandler = async (event) => {
+  // Check permission
+  await requirePermission('role', 'create')(event);
 
-		const { name, description, permissions } = await request.json();
+  try {
+    const { name, description, permissions } = await event.request.json();
+    const user = event.locals.user;
 
-		// Validate required fields
-		if (!name || !description) {
-			return json({ error: 'Name and description are required' }, { status: 400 });
-		}
+    if (!user) {
+      throw error(401, 'Unauthorized');
+    }
 
-		// Check if role name already exists
-		const existingRole = await rolesCollection.findOne({ name });
-		if (existingRole) {
-			return json({ error: 'Role name already exists' }, { status: 400 });
-		}
+    // Validate input
+    if (!name || !description) {
+      throw error(400, 'Name and description are required');
+    }
 
-		// Validate permissions exist
-		const permissionIds = permissions.map((id: string) => new ObjectId(id));
-		const validPermissions = await permissionsCollection.find({ 
-			_id: { $in: permissionIds } 
-		}).toArray();
+    // Check if role name already exists
+    const existingRole = await rolesCollection.findOne({ name });
+    if (existingRole) {
+      throw error(400, 'Role name already exists');
+    }
 
-		if (validPermissions.length !== permissionIds.length) {
-			return json({ error: 'Some permissions are invalid' }, { status: 400 });
-		}
+    // Create the role
+    const roleId = await RBACService.createRole(name, description, permissions, user.id);
+    
+    if (!roleId) {
+      throw error(500, 'Failed to create role');
+    }
 
-		// Create the role using RBACService
-		const roleId = await RBACService.createRole(
-			name,
-			description,
-			permissions,
-			session.user.id
-		);
+    // Get the created role with permissions
+    const createdRole = await rolesCollection.findOne({ _id: roleId });
+    const rolePermissions = await permissionsCollection
+      .find({ _id: { $in: createdRole?.permissions || [] } })
+      .toArray();
 
-		if (!roleId) {
-			return json({ error: 'Failed to create role' }, { status: 500 });
-		}
-
-		// Get the created role
-		const createdRole = await rolesCollection.findOne({ _id: roleId });
-		if (!createdRole) {
-			return json({ error: 'Role created but not found' }, { status: 500 });
-		}
-
-		// Serialize for JSON response
-		const serializedRole = {
-			...createdRole,
-			_id: createdRole._id.toString(),
-			permissions: createdRole.permissions.map(p => p.toString())
-		};
-
-		return json(serializedRole, { status: 201 });
-	} catch (error) {
-		console.error('Error creating role:', error);
-		return json({ error: 'Internal server error' }, { status: 500 });
-	}
+    return json({
+      ...createdRole,
+      permissions: rolePermissions,
+      userCount: 0
+    });
+  } catch (err) {
+    console.error('Error creating role:', err);
+    if (err instanceof Error && err.message.includes('already exists')) {
+      throw error(400, err.message);
+    }
+    throw error(500, 'Failed to create role');
+  }
 };

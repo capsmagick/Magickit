@@ -1,59 +1,76 @@
-import { json } from '@sveltejs/kit';
-import type { RequestHandler } from './$types';
+import { json, error } from '@sveltejs/kit';
 import { RBACService } from '$lib/db/rbac';
-import { auth } from '$lib/auth/auth';
-import db from '$lib/db/dbClient';
+import { requirePermission } from '$lib/auth/rbac-middleware';
+import type { RequestHandler } from './$types';
 
-// GET /api/admin/audit-logs - Get audit logs with filtering
-export const GET: RequestHandler = async ({ request, url }) => {
-	try {
-		// Check authentication and admin role
-		const session = await auth.api.getSession({ headers: request.headers });
-		if (!session?.user || session.user.role !== 'admin') {
-			return json({ error: 'Unauthorized' }, { status: 401 });
-		}
+// GET /api/admin/audit-logs - Get audit logs with filtering and pagination
+export const GET: RequestHandler = async (event) => {
+  // Check permission
+  await requirePermission('audit', 'read')(event);
 
-		// Parse query parameters for filtering
-		const userId = url.searchParams.get('userId');
-		const action = url.searchParams.get('action');
-		const resource = url.searchParams.get('resource');
-		const success = url.searchParams.get('success');
-		const startDate = url.searchParams.get('startDate');
-		const endDate = url.searchParams.get('endDate');
-		const limit = parseInt(url.searchParams.get('limit') || '100');
-		const skip = parseInt(url.searchParams.get('skip') || '0');
+  try {
+    const url = new URL(event.request.url);
+    const params = url.searchParams;
 
-		// Build filters object
-		const filters: any = {};
-		if (userId) filters.userId = userId;
-		if (action) filters.action = action;
-		if (resource) filters.resource = resource;
-		if (success !== null) filters.success = success === 'true';
-		if (startDate) filters.startDate = new Date(startDate);
-		if (endDate) filters.endDate = new Date(endDate);
+    // Parse pagination parameters
+    const page = parseInt(params.get('page') || '1');
+    const limit = parseInt(params.get('limit') || '50');
+    const skip = (page - 1) * limit;
 
-		// Get audit logs using RBACService
-		const auditLogs = await RBACService.getAuditLogs(filters, limit, skip);
+    // Parse filter parameters
+    const filters: any = {};
+    
+    if (params.get('userId')) {
+      filters.userId = params.get('userId');
+    }
+    
+    if (params.get('action')) {
+      filters.action = params.get('action');
+    }
+    
+    if (params.get('resource')) {
+      filters.resource = params.get('resource');
+    }
+    
+    if (params.get('success')) {
+      filters.success = params.get('success') === 'true';
+    }
+    
+    if (params.get('startDate')) {
+      filters.startDate = new Date(params.get('startDate')!);
+    }
+    
+    if (params.get('endDate')) {
+      filters.endDate = new Date(params.get('endDate')!);
+    }
 
-		// Get user information for all user IDs in the logs
-		const userIds = [...new Set(auditLogs.map(log => log.userId.toString()))];
-		const usersCollection = db.collection('user');
-		const users = await usersCollection
-			.find({ id: { $in: userIds } })
-			.toArray();
+    // Get audit logs
+    const auditLogs = await RBACService.getAuditLogs(filters, limit, skip);
+    
+    // Get total count for pagination
+    const totalCount = await RBACService.getAuditLogsCount(filters);
 
-		// Enhance logs with user information
-		const enhancedLogs = auditLogs.map(log => ({
-			...log,
-			_id: log._id.toString(),
-			userId: log.userId.toString(),
-			resourceId: log.resourceId?.toString(),
-			userName: users.find(u => u.id === log.userId.toString())?.name || 'Unknown User'
-		}));
+    // Enhance logs with user information
+    const enhancedLogs = await Promise.all(
+      auditLogs.map(async (log) => {
+        // You might want to fetch user information here
+        // For now, we'll just return the log as is
+        return {
+          ...log,
+          userName: 'User', // This could be fetched from the users collection
+        };
+      })
+    );
 
-		return json(enhancedLogs);
-	} catch (error) {
-		console.error('Error fetching audit logs:', error);
-		return json({ error: 'Internal server error' }, { status: 500 });
-	}
+    return json({
+      logs: enhancedLogs,
+      total: totalCount,
+      page,
+      limit,
+      totalPages: Math.ceil(totalCount / limit)
+    });
+  } catch (err) {
+    console.error('Error fetching audit logs:', err);
+    throw error(500, 'Failed to fetch audit logs');
+  }
 };

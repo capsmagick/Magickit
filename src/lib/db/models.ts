@@ -801,7 +801,9 @@ export const SYSTEM_ROLES = {
     ADMIN: 'admin', // Maps to Better Auth admin role
     USER: 'user',   // Maps to Better Auth user role
     MODERATOR: 'moderator',
-    EDITOR: 'editor'
+    EDITOR: 'editor',
+    CONTENT_MANAGER: 'content_manager',
+    SYSTEM_MONITOR: 'system_monitor'
 } as const;
 
 /**
@@ -822,24 +824,56 @@ export const SYSTEM_PERMISSIONS = {
     ROLE_DELETE: { resource: 'role', action: 'delete' as const },
     ROLE_MANAGE: { resource: 'role', action: 'manage' as const },
 
-    // Content management
+    // Content management - Enhanced with granular permissions
     CONTENT_CREATE: { resource: 'content', action: 'create' as const },
     CONTENT_READ: { resource: 'content', action: 'read' as const },
     CONTENT_UPDATE: { resource: 'content', action: 'update' as const },
     CONTENT_DELETE: { resource: 'content', action: 'delete' as const },
     CONTENT_MANAGE: { resource: 'content', action: 'manage' as const },
+    
+    // Content Types management
+    CONTENT_TYPE_CREATE: { resource: 'content_type', action: 'create' as const },
+    CONTENT_TYPE_READ: { resource: 'content_type', action: 'read' as const },
+    CONTENT_TYPE_UPDATE: { resource: 'content_type', action: 'update' as const },
+    CONTENT_TYPE_DELETE: { resource: 'content_type', action: 'delete' as const },
+    CONTENT_TYPE_MANAGE: { resource: 'content_type', action: 'manage' as const },
 
-    // Media management
+    // Content Publishing permissions
+    CONTENT_PUBLISH: { resource: 'content', action: 'publish' as const },
+    CONTENT_UNPUBLISH: { resource: 'content', action: 'unpublish' as const },
+    CONTENT_SCHEDULE: { resource: 'content', action: 'schedule' as const },
+
+    // Media management - Enhanced with granular permissions
     MEDIA_CREATE: { resource: 'media', action: 'create' as const },
     MEDIA_READ: { resource: 'media', action: 'read' as const },
     MEDIA_UPDATE: { resource: 'media', action: 'update' as const },
     MEDIA_DELETE: { resource: 'media', action: 'delete' as const },
     MEDIA_MANAGE: { resource: 'media', action: 'manage' as const },
+    
+    // Media Upload permissions
+    MEDIA_UPLOAD: { resource: 'media', action: 'upload' as const },
+    MEDIA_ORGANIZE: { resource: 'media', action: 'organize' as const },
+    
+    // Media Folder management
+    MEDIA_FOLDER_CREATE: { resource: 'media_folder', action: 'create' as const },
+    MEDIA_FOLDER_READ: { resource: 'media_folder', action: 'read' as const },
+    MEDIA_FOLDER_UPDATE: { resource: 'media_folder', action: 'update' as const },
+    MEDIA_FOLDER_DELETE: { resource: 'media_folder', action: 'delete' as const },
+    MEDIA_FOLDER_MANAGE: { resource: 'media_folder', action: 'manage' as const },
 
-    // System management
+    // System management - Enhanced with monitoring permissions
     SYSTEM_READ: { resource: 'system', action: 'read' as const },
     SYSTEM_UPDATE: { resource: 'system', action: 'update' as const },
-    SYSTEM_MANAGE: { resource: 'system', action: 'manage' as const }
+    SYSTEM_MANAGE: { resource: 'system', action: 'manage' as const },
+    
+    // System Health Monitoring
+    SYSTEM_MONITOR: { resource: 'system', action: 'monitor' as const },
+    SYSTEM_ALERTS: { resource: 'system', action: 'alerts' as const },
+    SYSTEM_LOGS: { resource: 'system', action: 'logs' as const },
+    
+    // Audit Log access
+    AUDIT_READ: { resource: 'audit', action: 'read' as const },
+    AUDIT_MANAGE: { resource: 'audit', action: 'manage' as const }
 } as const;
 
 /**

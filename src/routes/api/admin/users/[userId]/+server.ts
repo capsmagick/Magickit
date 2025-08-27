@@ -3,8 +3,8 @@ import type { RequestHandler } from './$types';
 import { auth } from '$lib/auth/auth';
 import { userManagementService } from '$lib/services/user';
 
-// GET /api/admin/users - Get all users with enhanced data
-export const GET: RequestHandler = async ({ request, url }) => {
+// GET /api/admin/users/[userId] - Get user by ID with enhanced data
+export const GET: RequestHandler = async ({ request, params }) => {
 	try {
 		// Check authentication and admin role
 		const session = await auth.api.getSession({ headers: request.headers });
@@ -12,46 +12,37 @@ export const GET: RequestHandler = async ({ request, url }) => {
 			return json({ error: 'Unauthorized' }, { status: 401 });
 		}
 
-		// Parse query parameters
-		const page = parseInt(url.searchParams.get('page') || '1');
-		const limit = parseInt(url.searchParams.get('limit') || '50');
-		const search = url.searchParams.get('search') || '';
-		const role = url.searchParams.get('role') || '';
-		const status = url.searchParams.get('status') as 'active' | 'banned' | 'all' || 'all';
-		const sortBy = url.searchParams.get('sortBy') as 'name' | 'email' | 'createdAt' | 'lastActivity' || 'createdAt';
-		const sortOrder = url.searchParams.get('sortOrder') as 'asc' | 'desc' || 'desc';
+		const { userId } = params;
+		if (!userId) {
+			return json({ error: 'User ID is required' }, { status: 400 });
+		}
 
-		// Get users with enhanced data
-		const result = await userManagementService.getAllUsers({
-			page,
-			limit,
-			search,
-			role,
-			status,
-			sortBy,
-			sortOrder
-		});
+		// Get user with enhanced data
+		const user = await userManagementService.getUserById(userId);
+		if (!user) {
+			return json({ error: 'User not found' }, { status: 404 });
+		}
 
 		// Log the access
 		await userManagementService.logUserActivity(
 			session.user.id,
-			'users_list_accessed',
-			{ filters: { search, role, status, sortBy, sortOrder } },
+			'user_details_accessed',
+			{ targetUserId: userId },
 			{
 				ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
 				userAgent: request.headers.get('user-agent') || 'unknown'
 			}
 		);
 
-		return json(result);
+		return json(user);
 	} catch (error) {
-		console.error('Error fetching users:', error);
+		console.error('Error fetching user:', error);
 		return json({ error: 'Internal server error' }, { status: 500 });
 	}
 };
 
-// PUT /api/admin/users - Update user profile
-export const PUT: RequestHandler = async ({ request }) => {
+// PUT /api/admin/users/[userId] - Update user profile
+export const PUT: RequestHandler = async ({ request, params }) => {
 	try {
 		// Check authentication and admin role
 		const session = await auth.api.getSession({ headers: request.headers });
@@ -59,11 +50,12 @@ export const PUT: RequestHandler = async ({ request }) => {
 			return json({ error: 'Unauthorized' }, { status: 401 });
 		}
 
-		const { userId, profileData } = await request.json();
-
-		if (!userId || !profileData) {
-			return json({ error: 'Missing required fields' }, { status: 400 });
+		const { userId } = params;
+		if (!userId) {
+			return json({ error: 'User ID is required' }, { status: 400 });
 		}
+
+		const profileData = await request.json();
 
 		// Update user profile
 		const updatedProfile = await userManagementService.updateUserProfile(

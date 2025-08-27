@@ -23,7 +23,8 @@ export class RBACClient {
         body: JSON.stringify({
           userId: session.user.id,
           resource,
-          action
+          action,
+          userRole: session.user.role // Pass Better Auth role
         })
       });
 
@@ -55,7 +56,8 @@ export class RBACClient {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userId: session.user.id
+          userId: session.user.id,
+          userRole: session.user.role // Pass Better Auth role
         })
       });
 
@@ -255,10 +257,110 @@ export function hasPermission(resource: string, action: string) {
 export const isAdmin = derived(
   [userPermissions],
   ([$permissions]) => {
-    // Check if user has system management permissions (indicates admin)
+    // First check Better Auth admin role
+    const session = authClient.getSession();
+    if (session?.user?.role === 'admin') {
+      return true;
+    }
+    
+    // Fallback to checking system management permissions
     return $permissions.some(p => p.resource === 'system' && p.action === 'manage');
   }
 );
+
+/**
+ * Check if user can access admin sections
+ */
+export function canAccessAdminSection(section: string) {
+  return derived(userPermissions, ($permissions) => {
+    // First check Better Auth admin role - admins have access to all sections
+    const session = authClient.getSession();
+    if (session?.user?.role === 'admin') {
+      return true;
+    }
+    
+    // Fallback to permission-based checking for non-admin users
+    switch (section) {
+      case 'content':
+        return $permissions.some(p => 
+          (p.resource === 'content' && ['read', 'create', 'update', 'manage'].includes(p.action)) ||
+          (p.resource === 'content_type' && ['read', 'manage'].includes(p.action))
+        );
+      case 'media':
+        return $permissions.some(p => 
+          (p.resource === 'media' && ['read', 'create', 'update', 'manage', 'upload'].includes(p.action)) ||
+          (p.resource === 'media_folder' && ['read', 'create', 'update', 'manage'].includes(p.action))
+        );
+      case 'system':
+        return $permissions.some(p => 
+          p.resource === 'system' && ['read', 'manage', 'monitor', 'alerts', 'logs'].includes(p.action)
+        );
+      case 'users':
+        return $permissions.some(p => 
+          p.resource === 'user' && ['read', 'create', 'update', 'manage'].includes(p.action)
+        );
+      case 'roles':
+        return $permissions.some(p => 
+          p.resource === 'role' && ['read', 'create', 'update', 'manage'].includes(p.action)
+        );
+      case 'audit':
+        return $permissions.some(p => 
+          p.resource === 'audit' && ['read', 'manage'].includes(p.action)
+        );
+      default:
+        return false;
+    }
+  });
+}
+
+/**
+ * Check if user can perform specific content actions
+ */
+export function canPerformContentAction(action: string) {
+  return derived(userPermissions, ($permissions) => {
+    return $permissions.some(p => 
+      p.resource === 'content' && (p.action === action || p.action === 'manage')
+    );
+  });
+}
+
+/**
+ * Check if user can perform specific media actions
+ */
+export function canPerformMediaAction(action: string) {
+  return derived(userPermissions, ($permissions) => {
+    return $permissions.some(p => 
+      p.resource === 'media' && (p.action === action || p.action === 'manage')
+    );
+  });
+}
+
+/**
+ * Check if user can manage content types
+ */
+export const canManageContentTypes = derived(userPermissions, ($permissions) => {
+  return $permissions.some(p => 
+    p.resource === 'content_type' && ['create', 'update', 'delete', 'manage'].includes(p.action)
+  );
+});
+
+/**
+ * Check if user can access system monitoring
+ */
+export const canAccessSystemMonitoring = derived(userPermissions, ($permissions) => {
+  return $permissions.some(p => 
+    p.resource === 'system' && ['monitor', 'alerts', 'logs', 'manage'].includes(p.action)
+  );
+});
+
+/**
+ * Check if user can access audit logs
+ */
+export const canAccessAuditLogs = derived(userPermissions, ($permissions) => {
+  return $permissions.some(p => 
+    p.resource === 'audit' && ['read', 'manage'].includes(p.action)
+  );
+});
 
 /**
  * Permission-based component wrapper

@@ -258,6 +258,9 @@
 	}
 
 	function getUniqueResources(): string[] {
+		if (!permissions || !Array.isArray(permissions)) {
+			return [];
+		}
 		return [...new Set(permissions.map(p => p.resource))].sort();
 	}
 

@@ -411,7 +411,7 @@
 					<Input
 						id="dependencies"
 						bind:value={formData.dependencies}
-						placeholder="lucide-svelte, clsx"
+						placeholder="@lucide/svelte, clsx"
 						disabled={submitting}
 					/>
 					<p class="text-xs text-muted-foreground">Required dependencies (comma-separated)</p>

@@ -119,10 +119,15 @@
 	});
 
 	// Paginated logs
-	let paginatedLogs = $derived(filteredLogs.slice(
-		(currentPage - 1) * itemsPerPage,
-		currentPage * itemsPerPage
-	));
+	let paginatedLogs = $derived(() => {
+		if (!filteredLogs || !Array.isArray(filteredLogs)) {
+			return [];
+		}
+		return filteredLogs.slice(
+			(currentPage - 1) * itemsPerPage,
+			currentPage * itemsPerPage
+		);
+	});
 
 	let totalPages = $derived(Math.ceil(totalItems / itemsPerPage));
 

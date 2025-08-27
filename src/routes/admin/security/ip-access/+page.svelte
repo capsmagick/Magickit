@@ -115,6 +115,9 @@
 
 	// Filtered access attempts based on search
 	const filteredAttempts = $derived.by(() => {
+		if (!accessAttempts || !Array.isArray(accessAttempts)) {
+			return [];
+		}
 		if (!searchTerm) return accessAttempts.slice(0, 10); // Show latest 10
 		return accessAttempts.filter(attempt => 
 			attempt.ip.toLowerCase().includes(searchTerm.toLowerCase()) ||

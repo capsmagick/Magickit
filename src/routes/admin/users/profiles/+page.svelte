@@ -113,10 +113,15 @@
 	});
 
 	// Paginated users - computed values
-	let paginatedUsers = $derived(filteredUsers.slice(
-		(currentPage - 1) * itemsPerPage,
-		currentPage * itemsPerPage
-	));
+	let paginatedUsers = $derived(() => {
+		if (!filteredUsers || !Array.isArray(filteredUsers)) {
+			return [];
+		}
+		return filteredUsers.slice(
+			(currentPage - 1) * itemsPerPage,
+			currentPage * itemsPerPage
+		);
+	});
 
 	let totalPages = $derived(Math.ceil(totalItems / itemsPerPage));
 
@@ -133,9 +138,20 @@
 
 	async function loadUsers() {
 		try {
-			const response = await fetch('/api/admin/users');
+			// Build query parameters
+			const params = new URLSearchParams({
+				page: currentPage.toString(),
+				limit: itemsPerPage.toString(),
+				search: searchTerm,
+				sortBy: 'createdAt',
+				sortOrder: 'desc'
+			});
+
+			const response = await fetch(`/api/admin/users?${params}`);
 			if (response.ok) {
-				users = await response.json();
+				const result = await response.json();
+				users = result.users || [];
+				totalItems = result.pagination?.total || 0;
 			} else {
 				throw new Error('Failed to load users');
 			}
@@ -153,13 +169,24 @@
 		success = '';
 
 		try {
-			// This would integrate with a user profile API endpoint
-			// For now, we'll simulate the update
-			success = 'User profile updated successfully';
-			showEditDialog = false;
-			await loadUsers();
+			const response = await fetch(`/api/admin/users/${selectedUser.id}`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(profileData)
+			});
+
+			if (response.ok) {
+				success = 'User profile updated successfully';
+				showEditDialog = false;
+				await loadUsers();
+			} else {
+				const errorData = await response.json();
+				throw new Error(errorData.error || 'Failed to update profile');
+			}
 		} catch (err) {
-			error = 'Failed to update user profile. Please try again.';
+			error = err.message || 'Failed to update user profile. Please try again.';
 			console.error('Error updating profile:', err);
 		} finally {
 			isSubmitting = false;
@@ -177,13 +204,78 @@
 		success = '';
 
 		try {
-			// This would integrate with a bulk operations API endpoint
-			success = `Bulk operation applied to ${selectedUsers.length} users successfully`;
-			showBulkDialog = false;
-			selectedUsers = [];
-			await loadUsers();
+			let requestData;
+
+			switch (bulkOperation.action) {
+				case 'update-theme':
+					requestData = {
+						action: 'update-preferences',
+						userIds: selectedUsers,
+						data: {
+							preferences: {
+								theme: bulkOperation.theme
+							}
+						}
+					};
+					break;
+				case 'update-notifications':
+					requestData = {
+						action: 'update-preferences',
+						userIds: selectedUsers,
+						data: {
+							preferences: {
+								notifications: {
+									email: bulkOperation.emailNotifications,
+									push: bulkOperation.pushNotifications,
+									marketing: bulkOperation.marketingNotifications
+								}
+							}
+						}
+					};
+					break;
+				case 'reset-preferences':
+					requestData = {
+						action: 'update-preferences',
+						userIds: selectedUsers,
+						data: {
+							preferences: {
+								theme: 'system',
+								notifications: {
+									email: true,
+									push: true,
+									marketing: false
+								}
+							}
+						}
+					};
+					break;
+				default:
+					throw new Error('Invalid bulk operation');
+			}
+
+			const response = await fetch('/api/admin/users/bulk', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(requestData)
+			});
+
+			if (response.ok) {
+				const result = await response.json();
+				success = `Bulk operation applied to ${result.result.successful} users successfully`;
+				if (result.result.failed > 0) {
+					success += ` (${result.result.failed} failed)`;
+				}
+				showBulkDialog = false;
+				selectedUsers = [];
+				await loadUsers();
+			} else {
+				const errorData = await response.json();
+				throw new Error(errorData.error || 'Failed to perform bulk operation');
+			}
 		} catch (err) {
-			error = 'Failed to perform bulk operation. Please try again.';
+			error = err.message || 'Failed to perform bulk operation. Please try again.';
 			console.error('Error performing bulk operation:', err);
 		} finally {
 			isSubmitting = false;

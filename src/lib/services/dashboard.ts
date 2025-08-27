@@ -1,6 +1,7 @@
 import { ObjectId } from 'mongodb';
 import db from '$lib/db/dbClient';
 import { HealthMonitoringService } from './health';
+import { userManagementService } from './user';
 import { getCollectionStats, checkDatabaseHealth } from '$lib/db/collections';
 import type { SystemMetrics, SystemAlert } from '$lib/db/models';
 
@@ -98,84 +99,43 @@ export class DashboardService {
   }
 
   /**
-   * Get detailed user statistics
+   * Get detailed user statistics using enhanced user management service
    */
   static async getUserStatistics(): Promise<UserStatistics> {
     try {
-      const usersCollection = db.collection('user');
-      const sessionsCollection = db.collection('session');
+      // Use the enhanced user management service for comprehensive statistics
+      const userStats = await userManagementService.getUserStatistics();
       
+      // Calculate additional metrics
       const now = new Date();
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-
-      // Get total users
-      const totalUsers = await usersCollection.countDocuments();
-
-      // Get users created today
-      const newToday = await usersCollection.countDocuments({
-        createdAt: { $gte: todayStart }
-      });
-
-      // Get users created this week
+      
+      const usersCollection = db.collection('user');
       const newThisWeek = await usersCollection.countDocuments({
         createdAt: { $gte: weekStart }
       });
 
-      // Get users created this month
-      const newThisMonth = await usersCollection.countDocuments({
-        createdAt: { $gte: monthStart }
-      });
+      // Get recent activity from audit logs
+      const auditLogsCollection = db.collection('auditLogs');
+      const recentActivities = await auditLogsCollection
+        .find({})
+        .sort({ timestamp: -1 })
+        .limit(10)
+        .toArray();
 
-      // Get active users (users with sessions in last 24 hours)
-      const activeUserIds = await sessionsCollection.distinct('userId', {
-        expiresAt: { $gt: new Date(now.getTime() - 24 * 60 * 60 * 1000) }
-      });
-      const activeUsers = activeUserIds.length;
-
-      // Get users by role
-      const roleAggregation = await usersCollection.aggregate([
-        {
-          $group: {
-            _id: '$role',
-            count: { $sum: 1 }
-          }
-        },
-        {
-          $project: {
-            role: '$_id',
-            count: 1,
-            _id: 0
-          }
-        }
-      ]).toArray();
-
-      const byRole = roleAggregation.map(item => ({
-        role: item.role || 'user',
-        count: item.count
-      }));
-
-      // Get recent activity (simplified - in production you'd have an activity log)
-      const recentUsers = await usersCollection.find({}, {
-        sort: { createdAt: -1 },
-        limit: 10,
-        projection: { _id: 1, name: 1, createdAt: 1 }
-      }).toArray();
-
-      const recentActivity = recentUsers.map(user => ({
-        userId: user._id.toString(),
-        action: 'User registered',
-        timestamp: user.createdAt
+      const recentActivity = recentActivities.map(activity => ({
+        userId: activity.userId?.toString() || activity.userId,
+        action: activity.action,
+        timestamp: activity.timestamp
       }));
 
       return {
-        total: totalUsers,
-        active: activeUsers,
-        newToday,
+        total: userStats.total,
+        active: userStats.active,
+        newToday: userStats.newToday,
         newThisWeek,
-        newThisMonth,
-        byRole,
+        newThisMonth: userStats.newThisMonth,
+        byRole: userStats.byRole,
         recentActivity
       };
     } catch (error) {

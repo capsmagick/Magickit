@@ -7,7 +7,20 @@ import type { ObjectId } from 'mongodb';
 /**
  * Permission action types
  */
-export type PermissionAction = 'create' | 'read' | 'update' | 'delete' | 'manage';
+export type PermissionAction = 
+  | 'create' 
+  | 'read' 
+  | 'update' 
+  | 'delete' 
+  | 'manage'
+  | 'publish'
+  | 'unpublish'
+  | 'schedule'
+  | 'upload'
+  | 'organize'
+  | 'monitor'
+  | 'alerts'
+  | 'logs';
 
 /**
  * System resource types
@@ -17,6 +30,9 @@ export type SystemResource =
   | 'role' 
   | 'permission' 
   | 'content' 
+  | 'content_type'
+  | 'media'
+  | 'media_folder'
   | 'system' 
   | 'audit'
   | 'blog'
@@ -342,7 +358,11 @@ export type PermissionMatrix = Record<SystemResource, PermissionAction[]>;
  * Type guard for checking if a value is a valid permission action
  */
 export function isValidPermissionAction(action: string): action is PermissionAction {
-  return ['create', 'read', 'update', 'delete', 'manage'].includes(action);
+  return [
+    'create', 'read', 'update', 'delete', 'manage',
+    'publish', 'unpublish', 'schedule', 'upload', 'organize',
+    'monitor', 'alerts', 'logs'
+  ].includes(action);
 }
 
 /**
@@ -350,7 +370,8 @@ export function isValidPermissionAction(action: string): action is PermissionAct
  */
 export function isValidSystemResource(resource: string): resource is SystemResource {
   return [
-    'user', 'role', 'permission', 'content', 'system', 
-    'audit', 'blog', 'portfolio', 'contact'
+    'user', 'role', 'permission', 'content', 'content_type',
+    'media', 'media_folder', 'system', 'audit', 'blog', 
+    'portfolio', 'contact'
   ].includes(resource);
 }

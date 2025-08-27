@@ -97,10 +97,13 @@ export class RBACService {
       { upsert: true }
     );
 
-    // Moderator role - content management permissions
+    // Moderator role - content moderation and media management permissions
     const moderatorPermissions = allPermissions
       .filter(p => 
-        (p.resource === 'content' && ['read', 'update', 'delete'].includes(p.action)) ||
+        (p.resource === 'content' && ['read', 'update', 'delete', 'publish', 'unpublish'].includes(p.action)) ||
+        (p.resource === 'content_type' && p.action === 'read') ||
+        (p.resource === 'media' && ['read', 'update', 'delete'].includes(p.action)) ||
+        (p.resource === 'media_folder' && ['read', 'update'].includes(p.action)) ||
         (p.resource === 'user' && p.action === 'read')
       )
       .map(p => p._id);
@@ -110,7 +113,7 @@ export class RBACService {
       {
         $setOnInsert: {
           name: SYSTEM_ROLES.MODERATOR,
-          description: 'Content moderator with content management access',
+          description: 'Content moderator with content and media management access',
           permissions: moderatorPermissions,
           isSystemRole: false,
           createdAt: new Date(),
@@ -120,9 +123,14 @@ export class RBACService {
       { upsert: true }
     );
 
-    // Editor role - content creation and editing
+    // Editor role - content creation and editing with media access
     const editorPermissions = allPermissions
-      .filter(p => p.resource === 'content')
+      .filter(p => 
+        (p.resource === 'content' && ['create', 'read', 'update', 'publish', 'unpublish', 'schedule'].includes(p.action)) ||
+        (p.resource === 'content_type' && p.action === 'read') ||
+        (p.resource === 'media' && ['create', 'read', 'update', 'upload'].includes(p.action)) ||
+        (p.resource === 'media_folder' && ['create', 'read', 'update'].includes(p.action))
+      )
       .map(p => p._id);
 
     await rolesCollection.updateOne(
@@ -130,8 +138,56 @@ export class RBACService {
       {
         $setOnInsert: {
           name: SYSTEM_ROLES.EDITOR,
-          description: 'Content editor with full content management access',
+          description: 'Content editor with content management and media access',
           permissions: editorPermissions,
+          isSystemRole: false,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      },
+      { upsert: true }
+    );
+
+    // Content Manager role - full content and media management
+    const contentManagerPermissions = allPermissions
+      .filter(p => 
+        p.resource === 'content' ||
+        p.resource === 'content_type' ||
+        p.resource === 'media' ||
+        p.resource === 'media_folder'
+      )
+      .map(p => p._id);
+
+    await rolesCollection.updateOne(
+      { name: 'content_manager' },
+      {
+        $setOnInsert: {
+          name: 'content_manager',
+          description: 'Content manager with full content and media management access',
+          permissions: contentManagerPermissions,
+          isSystemRole: false,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      },
+      { upsert: true }
+    );
+
+    // System Monitor role - system health monitoring access
+    const systemMonitorPermissions = allPermissions
+      .filter(p => 
+        (p.resource === 'system' && ['read', 'monitor', 'alerts', 'logs'].includes(p.action)) ||
+        (p.resource === 'audit' && p.action === 'read')
+      )
+      .map(p => p._id);
+
+    await rolesCollection.updateOne(
+      { name: 'system_monitor' },
+      {
+        $setOnInsert: {
+          name: 'system_monitor',
+          description: 'System monitor with health monitoring and audit log access',
+          permissions: systemMonitorPermissions,
           isSystemRole: false,
           createdAt: new Date(),
           updatedAt: new Date()
@@ -148,12 +204,22 @@ export class RBACService {
   static async userHasPermission(
     userId: string, 
     resource: string, 
-    action: string
+    action: string,
+    userRole?: string // Optional Better Auth role for optimization
   ): Promise<boolean> {
     try {
+      // If user has Better Auth admin role, grant all permissions and ensure RBAC role assignment
+      if (userRole === 'admin') {
+        // Ensure admin RBAC role is assigned (async, don't wait)
+        this.ensureAdminRoleAssignment(userId).catch(error => 
+          console.error('Failed to ensure admin role assignment:', error)
+        );
+        return true;
+      }
+
       const userObjectId = new ObjectId(userId);
       
-      // Get user's roles
+      // Get user's RBAC roles
       const userRoles = await userRolesCollection
         .find({ 
           userId: userObjectId,
@@ -194,8 +260,13 @@ export class RBACService {
   /**
    * Get all permissions for a user
    */
-  static async getUserPermissions(userId: string): Promise<Permission[]> {
+  static async getUserPermissions(userId: string, userRole?: string): Promise<Permission[]> {
     try {
+      // If user has Better Auth admin role, return all permissions
+      if (userRole === 'admin') {
+        return await permissionsCollection.find({}).toArray();
+      }
+
       const userObjectId = new ObjectId(userId);
       
       const userRoles = await userRolesCollection
@@ -372,6 +443,117 @@ export class RBACService {
   }
 
   /**
+   * Log permission check for audit purposes
+   */
+  static async logPermissionCheck(
+    userId: string,
+    resource: string,
+    action: string,
+    granted: boolean,
+    ipAddress: string = 'unknown',
+    userAgent: string = 'unknown'
+  ): Promise<void> {
+    await this.logAction(
+      userId,
+      'permission_check',
+      resource,
+      undefined,
+      { 
+        requestedAction: action,
+        granted,
+        checkType: 'permission'
+      },
+      granted,
+      ipAddress,
+      userAgent
+    );
+  }
+
+  /**
+   * Log admin section access for audit purposes
+   */
+  static async logAdminAccess(
+    userId: string,
+    section: string,
+    granted: boolean,
+    ipAddress: string = 'unknown',
+    userAgent: string = 'unknown'
+  ): Promise<void> {
+    await this.logAction(
+      userId,
+      'admin_access',
+      'system',
+      undefined,
+      { 
+        section,
+        granted,
+        accessType: 'admin_section'
+      },
+      granted,
+      ipAddress,
+      userAgent
+    );
+  }
+
+  /**
+   * Log content management actions
+   */
+  static async logContentAction(
+    userId: string,
+    action: string,
+    contentId: string | undefined,
+    contentType: string,
+    details: Record<string, any>,
+    success: boolean,
+    ipAddress: string = 'unknown',
+    userAgent: string = 'unknown'
+  ): Promise<void> {
+    await this.logAction(
+      userId,
+      action,
+      'content',
+      contentId,
+      {
+        ...details,
+        contentType,
+        actionType: 'content_management'
+      },
+      success,
+      ipAddress,
+      userAgent
+    );
+  }
+
+  /**
+   * Log media management actions
+   */
+  static async logMediaAction(
+    userId: string,
+    action: string,
+    mediaId: string | undefined,
+    mediaType: string,
+    details: Record<string, any>,
+    success: boolean,
+    ipAddress: string = 'unknown',
+    userAgent: string = 'unknown'
+  ): Promise<void> {
+    await this.logAction(
+      userId,
+      action,
+      'media',
+      mediaId,
+      {
+        ...details,
+        mediaType,
+        actionType: 'media_management'
+      },
+      success,
+      ipAddress,
+      userAgent
+    );
+  }
+
+  /**
    * Get audit logs with filtering
    */
   static async getAuditLogs(
@@ -420,6 +602,51 @@ export class RBACService {
     } catch (error) {
       console.error('Error getting audit logs:', error);
       return [];
+    }
+  }
+
+  /**
+   * Get audit logs count with filtering
+   */
+  static async getAuditLogsCount(
+    filters: {
+      userId?: string;
+      action?: string;
+      resource?: string;
+      startDate?: Date;
+      endDate?: Date;
+      success?: boolean;
+    } = {}
+  ): Promise<number> {
+    try {
+      const query: any = {};
+
+      if (filters.userId) {
+        query.userId = new ObjectId(filters.userId);
+      }
+      if (filters.action) {
+        query.action = filters.action;
+      }
+      if (filters.resource) {
+        query.resource = filters.resource;
+      }
+      if (filters.success !== undefined) {
+        query.success = filters.success;
+      }
+      if (filters.startDate || filters.endDate) {
+        query.timestamp = {};
+        if (filters.startDate) {
+          query.timestamp.$gte = filters.startDate;
+        }
+        if (filters.endDate) {
+          query.timestamp.$lte = filters.endDate;
+        }
+      }
+
+      return await auditLogsCollection.countDocuments(query);
+    } catch (error) {
+      console.error('Error getting audit logs count:', error);
+      return 0;
     }
   }
 
@@ -582,5 +809,69 @@ export class RBACService {
       
       return false;
     }
+  }
+
+  /**
+   * Ensure admin users have the admin RBAC role assigned
+   * This should be called when a user is promoted to admin or when checking permissions
+   */
+  static async ensureAdminRoleAssignment(userId: string, assignedBy?: string): Promise<boolean> {
+    try {
+      const userObjectId = new ObjectId(userId);
+      
+      // Get the admin role
+      const adminRole = await rolesCollection.findOne({ name: SYSTEM_ROLES.ADMIN });
+      if (!adminRole) {
+        console.error('Admin role not found in RBAC system');
+        return false;
+      }
+
+      // Check if user already has admin role assigned
+      const existingAssignment = await userRolesCollection.findOne({
+        userId: userObjectId,
+        roleId: adminRole._id
+      });
+
+      if (existingAssignment) {
+        return true; // Already assigned
+      }
+
+      // Assign admin role
+      const assignment: Omit<UserRole, '_id'> = {
+        userId: userObjectId,
+        roleId: adminRole._id,
+        assignedBy: assignedBy ? new ObjectId(assignedBy) : userObjectId, // Self-assigned if no assigner
+        assignedAt: new Date()
+      };
+
+      await userRolesCollection.insertOne(assignment as UserRole);
+
+      // Log the action
+      await this.logAction(
+        assignedBy || userId,
+        'admin_role_auto_assigned',
+        'user',
+        userId,
+        { roleId: adminRole._id.toString(), autoAssigned: true },
+        true
+      );
+
+      return true;
+    } catch (error) {
+      console.error('Error ensuring admin role assignment:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if user is admin (Better Auth role) and ensure RBAC admin role is assigned
+   */
+  static async checkAndEnsureAdminPermissions(userId: string, userRole?: string): Promise<boolean> {
+    if (userRole === 'admin') {
+      // Ensure admin RBAC role is assigned
+      await this.ensureAdminRoleAssignment(userId);
+      return true;
+    }
+    return false;
   }
 }

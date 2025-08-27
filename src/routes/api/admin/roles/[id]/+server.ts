@@ -1,132 +1,170 @@
-import { json } from '@sveltejs/kit';
-import type { RequestHandler } from './$types';
-import { rolesCollection, permissionsCollection } from '$lib/db/collections';
-import { RBACService } from '$lib/db/rbac';
+import { json, error } from '@sveltejs/kit';
 import { ObjectId } from 'mongodb';
-import { auth } from '$lib/auth/auth';
+import { RBACService } from '$lib/db/rbac';
+import { rolesCollection, permissionsCollection, userRolesCollection } from '$lib/db/collections';
+import { requirePermission } from '$lib/auth/rbac-middleware';
+import type { RequestHandler } from './$types';
 
-// PUT /api/admin/roles/[id] - Update a role
-export const PUT: RequestHandler = async ({ request, params }) => {
-	try {
-		// Check authentication and admin role
-		const session = await auth.api.getSession({ headers: request.headers });
-		if (!session?.user || session.user.role !== 'admin') {
-			return json({ error: 'Unauthorized' }, { status: 401 });
-		}
+// GET /api/admin/roles/[id] - Get specific role
+export const GET: RequestHandler = async (event) => {
+  // Check permission
+  await requirePermission('role', 'read')(event);
 
-		const { id } = params;
-		const { name, description, permissions } = await request.json();
+  try {
+    const { id } = event.params;
+    
+    if (!ObjectId.isValid(id)) {
+      throw error(400, 'Invalid role ID');
+    }
 
-		// Validate ObjectId
-		if (!ObjectId.isValid(id)) {
-			return json({ error: 'Invalid role ID' }, { status: 400 });
-		}
+    const role = await rolesCollection.findOne({ _id: new ObjectId(id) });
+    
+    if (!role) {
+      throw error(404, 'Role not found');
+    }
 
-		// Validate required fields
-		if (!name || !description) {
-			return json({ error: 'Name and description are required' }, { status: 400 });
-		}
+    // Get permissions for this role
+    const permissions = await permissionsCollection
+      .find({ _id: { $in: role.permissions } })
+      .toArray();
+    
+    // Get user count for this role
+    const userCount = await userRolesCollection.countDocuments({ roleId: role._id });
 
-		// Check if role exists
-		const existingRole = await rolesCollection.findOne({ _id: new ObjectId(id) });
-		if (!existingRole) {
-			return json({ error: 'Role not found' }, { status: 404 });
-		}
-
-		// Don't allow updating system roles
-		if (existingRole.isSystemRole) {
-			return json({ error: 'Cannot update system roles' }, { status: 400 });
-		}
-
-		// Check if new name conflicts with existing role (excluding current role)
-		if (name !== existingRole.name) {
-			const nameConflict = await rolesCollection.findOne({ 
-				name, 
-				_id: { $ne: new ObjectId(id) } 
-			});
-			if (nameConflict) {
-				return json({ error: 'Role name already exists' }, { status: 400 });
-			}
-		}
-
-		// Validate permissions exist
-		const permissionIds = permissions.map((permId: string) => new ObjectId(permId));
-		const validPermissions = await permissionsCollection.find({ 
-			_id: { $in: permissionIds } 
-		}).toArray();
-
-		if (validPermissions.length !== permissionIds.length) {
-			return json({ error: 'Some permissions are invalid' }, { status: 400 });
-		}
-
-		// Update the role using RBACService
-		const success = await RBACService.updateRole(
-			id,
-			{ name, description, permissions: permissions },
-			session.user.id
-		);
-
-		if (!success) {
-			return json({ error: 'Failed to update role' }, { status: 500 });
-		}
-
-		// Get the updated role
-		const updatedRole = await rolesCollection.findOne({ _id: new ObjectId(id) });
-		if (!updatedRole) {
-			return json({ error: 'Role updated but not found' }, { status: 500 });
-		}
-
-		// Serialize for JSON response
-		const serializedRole = {
-			...updatedRole,
-			_id: updatedRole._id.toString(),
-			permissions: updatedRole.permissions.map(p => p.toString())
-		};
-
-		return json(serializedRole);
-	} catch (error) {
-		console.error('Error updating role:', error);
-		return json({ error: 'Internal server error' }, { status: 500 });
-	}
+    return json({
+      ...role,
+      permissions,
+      userCount
+    });
+  } catch (err) {
+    console.error('Error fetching role:', err);
+    throw error(500, 'Failed to fetch role');
+  }
 };
 
-// DELETE /api/admin/roles/[id] - Delete a role
-export const DELETE: RequestHandler = async ({ request, params }) => {
-	try {
-		// Check authentication and admin role
-		const session = await auth.api.getSession({ headers: request.headers });
-		if (!session?.user || session.user.role !== 'admin') {
-			return json({ error: 'Unauthorized' }, { status: 401 });
-		}
+// PUT /api/admin/roles/[id] - Update role
+export const PUT: RequestHandler = async (event) => {
+  // Check permission
+  await requirePermission('role', 'update')(event);
 
-		const { id } = params;
+  try {
+    const { id } = event.params;
+    const { name, description, permissions } = await event.request.json();
+    const user = event.locals.user;
 
-		// Validate ObjectId
-		if (!ObjectId.isValid(id)) {
-			return json({ error: 'Invalid role ID' }, { status: 400 });
-		}
+    if (!user) {
+      throw error(401, 'Unauthorized');
+    }
 
-		// Check if role exists
-		const existingRole = await rolesCollection.findOne({ _id: new ObjectId(id) });
-		if (!existingRole) {
-			return json({ error: 'Role not found' }, { status: 404 });
-		}
+    if (!ObjectId.isValid(id)) {
+      throw error(400, 'Invalid role ID');
+    }
 
-		// Don't allow deleting system roles
-		if (existingRole.isSystemRole) {
-			return json({ error: 'Cannot delete system roles' }, { status: 400 });
-		}
+    // Validate input
+    if (!name || !description) {
+      throw error(400, 'Name and description are required');
+    }
 
-		// Delete the role using RBACService
-		const success = await RBACService.deleteRole(id, session.user.id);
+    // Check if role exists
+    const existingRole = await rolesCollection.findOne({ _id: new ObjectId(id) });
+    if (!existingRole) {
+      throw error(404, 'Role not found');
+    }
 
-		if (!success) {
-			return json({ error: 'Failed to delete role' }, { status: 500 });
-		}
+    // Check if it's a system role
+    if (existingRole.isSystemRole) {
+      throw error(400, 'Cannot update system roles');
+    }
 
-		return json({ message: 'Role deleted successfully' });
-	} catch (error) {
-		console.error('Error deleting role:', error);
-		return json({ error: 'Internal server error' }, { status: 500 });
-	}
+    // Check if name is taken by another role
+    const nameConflict = await rolesCollection.findOne({ 
+      name, 
+      _id: { $ne: new ObjectId(id) } 
+    });
+    if (nameConflict) {
+      throw error(400, 'Role name already exists');
+    }
+
+    // Update the role
+    const success = await RBACService.updateRole(
+      id,
+      { name, description, permissions },
+      user.id
+    );
+
+    if (!success) {
+      throw error(500, 'Failed to update role');
+    }
+
+    // Get the updated role with permissions
+    const updatedRole = await rolesCollection.findOne({ _id: new ObjectId(id) });
+    const rolePermissions = await permissionsCollection
+      .find({ _id: { $in: updatedRole?.permissions || [] } })
+      .toArray();
+    
+    const userCount = await userRolesCollection.countDocuments({ roleId: new ObjectId(id) });
+
+    return json({
+      ...updatedRole,
+      permissions: rolePermissions,
+      userCount
+    });
+  } catch (err) {
+    console.error('Error updating role:', err);
+    if (err instanceof Error && err.message.includes('already exists')) {
+      throw error(400, err.message);
+    }
+    throw error(500, 'Failed to update role');
+  }
+};
+
+// DELETE /api/admin/roles/[id] - Delete role
+export const DELETE: RequestHandler = async (event) => {
+  // Check permission
+  await requirePermission('role', 'delete')(event);
+
+  try {
+    const { id } = event.params;
+    const user = event.locals.user;
+
+    if (!user) {
+      throw error(401, 'Unauthorized');
+    }
+
+    if (!ObjectId.isValid(id)) {
+      throw error(400, 'Invalid role ID');
+    }
+
+    // Check if role exists
+    const existingRole = await rolesCollection.findOne({ _id: new ObjectId(id) });
+    if (!existingRole) {
+      throw error(404, 'Role not found');
+    }
+
+    // Check if it's a system role
+    if (existingRole.isSystemRole) {
+      throw error(400, 'Cannot delete system roles');
+    }
+
+    // Check if role has assigned users
+    const userCount = await userRolesCollection.countDocuments({ roleId: new ObjectId(id) });
+    if (userCount > 0) {
+      throw error(400, 'Cannot delete role with assigned users');
+    }
+
+    // Delete the role
+    const success = await RBACService.deleteRole(id, user.id);
+
+    if (!success) {
+      throw error(500, 'Failed to delete role');
+    }
+
+    return json({ success: true });
+  } catch (err) {
+    console.error('Error deleting role:', err);
+    if (err instanceof Error && err.message.includes('Cannot delete')) {
+      throw error(400, err.message);
+    }
+    throw error(500, 'Failed to delete role');
+  }
 };

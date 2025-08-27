@@ -47,7 +47,13 @@ export class SystemMetricsCollection {
             const metrics = await cursor.toArray();
             const total = await collection.countDocuments(filter);
 
-            return { metrics, total };
+            // Serialize ObjectIds to strings for SvelteKit compatibility
+            const serializedMetrics = metrics.map(metric => ({
+                ...metric,
+                _id: metric._id.toString()
+            }));
+
+            return { metrics: serializedMetrics, total };
         } catch (error) {
             console.error('Error fetching system metrics:', error);
             throw new Error('Failed to fetch system metrics');
@@ -64,7 +70,13 @@ export class SystemMetricsCollection {
             const objectId = typeof id === 'string' ? new ObjectId(id) : id;
             const metric = await collection.findOne({ _id: objectId });
 
-            return metric;
+            if (!metric) return null;
+
+            // Serialize ObjectIds to strings for SvelteKit compatibility
+            return {
+                ...metric,
+                _id: metric._id.toString()
+            };
         } catch (error) {
             console.error('Error fetching system metric:', error);
             throw new Error('Failed to fetch system metric');
@@ -79,8 +91,9 @@ export class SystemMetricsCollection {
             const collection = dbClient.collection<SystemMetrics>(COLLECTION_NAME);
 
             const now = new Date();
-            const newMetric: SystemMetrics = {
-                _id: new ObjectId(),
+            const metricId = new ObjectId();
+            const newMetric = {
+                _id: metricId,
                 ...metricData,
                 createdAt: now
             };
@@ -91,7 +104,11 @@ export class SystemMetricsCollection {
                 throw new Error('Failed to create system metric');
             }
 
-            return newMetric;
+            // Return serialized metric for SvelteKit compatibility
+            return {
+                ...newMetric,
+                _id: metricId.toString()
+            };
         } catch (error) {
             console.error('Error creating system metric:', error);
             if (error instanceof Error) {
@@ -114,7 +131,11 @@ export class SystemMetricsCollection {
                 .limit(limit)
                 .toArray();
 
-            return metrics;
+            // Serialize ObjectIds to strings for SvelteKit compatibility
+            return metrics.map(metric => ({
+                ...metric,
+                _id: metric._id.toString()
+            }));
         } catch (error) {
             console.error('Error fetching latest metrics:', error);
             throw new Error('Failed to fetch latest metrics');
