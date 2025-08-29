@@ -76,34 +76,55 @@ export class UserManagementService {
       // Enhance users with profile data and activity info
       const enhancedUsers = await Promise.all(
         users.map(async (user) => {
-          const [profile, lastActivity, sessionCount] = await Promise.all([
-            this.getUserProfile(user.id),
-            this.getLastActivity(user.id),
-            this.getActiveSessionCount(user.id)
-          ]);
+          try {
+            const [profile, lastActivity, sessionCount] = await Promise.all([
+              this.getUserProfile(user.id).catch(() => null),
+              this.getLastActivity(user.id).catch(() => null),
+              this.getActiveSessionCount(user.id).catch(() => 0)
+            ]);
 
-          return {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            image: user.image,
-            role: user.role,
-            emailVerified: user.emailVerified,
-            banned: user.banned || false,
-            banReason: user.banReason,
-            banExpires: user.banExpires,
-            createdAt: user.createdAt,
-            updatedAt: user.updatedAt,
-            lastActivity,
-            sessionCount,
-            profile: profile ? {
-              bio: profile.bio,
-              location: profile.location,
-              website: profile.website,
-              socialLinks: profile.socialLinks,
-              preferences: profile.preferences
-            } : null
-          };
+            return {
+              id: user.id,
+              name: user.name || 'Unknown User',
+              email: user.email,
+              image: user.image || null,
+              role: user.role || 'user',
+              emailVerified: user.emailVerified || false,
+              banned: user.banned || false,
+              banReason: user.banReason || null,
+              banExpires: user.banExpires || null,
+              createdAt: user.createdAt || new Date(),
+              updatedAt: user.updatedAt || new Date(),
+              lastActivity,
+              sessionCount,
+              profile: profile ? {
+                bio: profile.bio,
+                location: profile.location,
+                website: profile.website,
+                socialLinks: profile.socialLinks,
+                preferences: profile.preferences
+              } : null
+            };
+          } catch (error) {
+            console.error(`Error enhancing user ${user.id}:`, error);
+            // Return basic user data if enhancement fails
+            return {
+              id: user.id,
+              name: user.name || 'Unknown User',
+              email: user.email,
+              image: user.image || null,
+              role: user.role || 'user',
+              emailVerified: user.emailVerified || false,
+              banned: user.banned || false,
+              banReason: user.banReason || null,
+              banExpires: user.banExpires || null,
+              createdAt: user.createdAt || new Date(),
+              updatedAt: user.updatedAt || new Date(),
+              lastActivity: null,
+              sessionCount: 0,
+              profile: null
+            };
+          }
         })
       );
 

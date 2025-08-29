@@ -35,7 +35,6 @@
 
 	// State management with proper $state() declarations
 	let users: any[] = $state([]);
-	let filteredUsers: any[] = $state([]);
 	let selectedUsers: string[] = $state([]);
 	let isLoading = $state(true);
 	let error = $state('');
@@ -92,36 +91,7 @@
 		isLoading = false;
 	});
 
-	// Reactive filtering
-	$effect(() => {
-		let filtered = users;
-
-		// Search filter
-		if (searchTerm.trim() !== '') {
-			const term = searchTerm.toLowerCase();
-			filtered = filtered.filter(user => 
-				user.name?.toLowerCase().includes(term) ||
-				user.email?.toLowerCase().includes(term) ||
-				user.bio?.toLowerCase().includes(term) ||
-				user.location?.toLowerCase().includes(term)
-			);
-		}
-
-		filteredUsers = filtered;
-		totalItems = filtered.length;
-		currentPage = 1; // Reset to first page when filters change
-	});
-
-	// Paginated users - computed values
-	let paginatedUsers = $derived(() => {
-		if (!filteredUsers || !Array.isArray(filteredUsers)) {
-			return [];
-		}
-		return filteredUsers.slice(
-			(currentPage - 1) * itemsPerPage,
-			currentPage * itemsPerPage
-		);
-	});
+	// Use users directly since server handles pagination
 
 	let totalPages = $derived(Math.ceil(totalItems / itemsPerPage));
 
@@ -326,7 +296,7 @@
 
 	function selectAllUsers(checked: boolean) {
 		if (checked) {
-			selectedUsers = paginatedUsers.map(user => user.id);
+			selectedUsers = users.map(user => user.id);
 		} else {
 			selectedUsers = [];
 		}
@@ -447,7 +417,7 @@
 				</div>
 				<div class="flex items-center gap-2">
 					<span class="text-sm text-muted-foreground">
-						{selectedUsers.length} of {paginatedUsers.length} selected
+						{selectedUsers.length} of {users.length} selected
 					</span>
 				</div>
 			</div>
@@ -460,7 +430,7 @@
 			<div class="flex justify-center py-12">
 				<LoaderCircle class="h-8 w-8 animate-spin text-primary" />
 			</div>
-		{:else if paginatedUsers.length === 0}
+		{:else if users.length === 0}
 			<div class="text-center py-12 space-y-4">
 				<Users class="h-12 w-12 mx-auto text-muted-foreground" />
 				<div class="space-y-2">
@@ -476,12 +446,12 @@
 				<CardContent class="p-4">
 					<div class="flex items-center gap-2">
 						<Checkbox 
-							checked={selectedUsers.length === paginatedUsers.length && paginatedUsers.length > 0}
+							checked={selectedUsers.length === users.length && users.length > 0}
 							onCheckedChange={selectAllUsers}
 							aria-label="Select all users"
 						/>
 						<Label class="text-sm font-medium">
-							Select all users on this page ({paginatedUsers.length})
+							Select all users on this page ({users.length})
 						</Label>
 					</div>
 				</CardContent>
@@ -489,7 +459,7 @@
 
 			<!-- User Profiles Grid -->
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-				{#each paginatedUsers as user}
+				{#each users as user}
 					<Card class="transition-all duration-200 hover:shadow-md">
 						<CardContent class="p-6">
 							<div class="space-y-4">

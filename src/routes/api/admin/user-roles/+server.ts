@@ -19,13 +19,20 @@ export const GET: RequestHandler = async ({ request }) => {
 			.sort({ assignedAt: -1 })
 			.toArray();
 
+		// If no user roles exist, return empty array
+		if (userRoles.length === 0) {
+			return json([]);
+		}
+
 		// Serialize for JSON response
 		const serializedUserRoles = userRoles.map(userRole => ({
 			...userRole,
 			_id: userRole._id.toString(),
 			userId: userRole.userId.toString(),
 			roleId: userRole.roleId.toString(),
-			assignedBy: userRole.assignedBy.toString()
+			assignedBy: userRole.assignedBy ? userRole.assignedBy.toString() : null,
+			assignedAt: userRole.assignedAt || new Date(),
+			expiresAt: userRole.expiresAt || null
 		}));
 
 		return json(serializedUserRoles);

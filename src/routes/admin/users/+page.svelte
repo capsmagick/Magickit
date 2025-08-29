@@ -34,7 +34,6 @@
 
 	// State management with proper $state() declarations
 	let users: any[] = $state([]);
-	let filteredUsers: any[] = $state([]);
 	let isLoading = $state(true);
 	let error = $state('');
 	let success = $state('');
@@ -76,48 +75,19 @@
 		isLoading = false;
 	});
 
-	// Reactive filtering
-	$effect(() => {
-		let filtered = users;
+	// Debounced search
+	let searchTimeout: NodeJS.Timeout;
+	function handleSearchChange() {
+		clearTimeout(searchTimeout);
+		searchTimeout = setTimeout(() => {
+			currentPage = 1;
+			loadUsers();
+		}, 300);
+	}
 
-		// Search filter
-		if (searchTerm.trim() !== '') {
-			const term = searchTerm.toLowerCase();
-			filtered = filtered.filter(user => 
-				user.name?.toLowerCase().includes(term) ||
-				user.email?.toLowerCase().includes(term)
-			);
-		}
 
-		// Role filter
-		if (roleFilter !== '') {
-			filtered = filtered.filter(user => user.role === roleFilter);
-		}
 
-		// Status filter
-		if (statusFilter !== '') {
-			if (statusFilter === 'active') {
-				filtered = filtered.filter(user => !user.banned);
-			} else if (statusFilter === 'banned') {
-				filtered = filtered.filter(user => user.banned);
-			}
-		}
-
-		filteredUsers = filtered;
-		totalItems = filtered.length;
-		currentPage = 1; // Reset to first page when filters change
-	});
-
-	// Paginated users - computed values
-	let paginatedUsers = $derived(() => {
-		if (!filteredUsers || !Array.isArray(filteredUsers)) {
-			return [];
-		}
-		return filteredUsers.slice(
-			(currentPage - 1) * itemsPerPage,
-			currentPage * itemsPerPage
-		);
-	});
+	// Use users directly since server handles pagination
 
 	let totalPages = $derived(Math.ceil(totalItems / itemsPerPage));
 
@@ -148,9 +118,14 @@
 			const response = await fetch(`/api/admin/users?${params}`);
 			if (response.ok) {
 				const result = await response.json();
+				console.log('API Response:', result); // Debug log
 				users = result.users || [];
 				totalItems = result.pagination?.total || 0;
+				console.log('Users array:', users);
+				console.log('Total items:', totalItems);
 			} else {
+				const errorText = await response.text();
+				console.error('API Error:', response.status, errorText);
 				throw new Error('Failed to load users');
 			}
 		} catch (err) {
@@ -331,11 +306,14 @@
 		searchTerm = '';
 		roleFilter = '';
 		statusFilter = '';
+		currentPage = 1;
+		loadUsers();
 	}
 
 	function goToPage(page: number) {
 		if (page >= 1 && page <= totalPages) {
 			currentPage = page;
+			loadUsers();
 		}
 	}
 
@@ -396,7 +374,7 @@
 	];
 
 	const selectedSelectedUserRoleLabel = $derived(
-		selectedUserRoleOptions.find(option => option.value === selectedUser.role)?.label ?? 'Select option'
+		selectedUser ? selectedUserRoleOptions.find(option => option.value === selectedUser.role)?.label ?? 'Select option' : 'Select option'
 	);
 </script>
 
@@ -443,12 +421,13 @@
 							type="search" 
 							placeholder="Search users..." 
 							class="pl-8 transition-colors duration-200" 
-							bind:value={searchTerm} 
+							bind:value={searchTerm}
+							oninput={handleSearchChange}
 						/>
 					</div>
 				</div>
 				<div class="flex flex-col sm:flex-row gap-2">
-					<Select.Root type="single" bind:value={roleFilter}>
+					<Select.Root type="single" bind:value={roleFilter} onValueChange={() => { currentPage = 1; loadUsers(); }}>
 				<Select.Trigger class="w-32">
 					{selectedRoleFilterLabel}
 				</Select.Trigger>
@@ -458,7 +437,7 @@
 					{/each}
 				</Select.Content>
 			</Select.Root>
-					<Select.Root type="single" bind:value={statusFilter}>
+					<Select.Root type="single" bind:value={statusFilter} onValueChange={() => { currentPage = 1; loadUsers(); }}>
 				<Select.Trigger class="w-32">
 					{selectedStatusFilterLabel}
 				</Select.Trigger>
@@ -476,6 +455,20 @@
 		</CardContent>
 	</Card>
 
+	<!-- Debug Info -->
+	<Card>
+		<CardContent class="p-4">
+			<div class="text-xs space-y-1">
+				<p><strong>Debug Info:</strong></p>
+				<p>isLoading: {isLoading}</p>
+				<p>users: {JSON.stringify(users)}</p>
+				<p>users.length: {users?.length || 'undefined'}</p>
+
+				<p>totalItems: {totalItems}</p>
+			</div>
+		</CardContent>
+	</Card>
+
 	<!-- Users Table -->
 	<Card>
 		<CardContent class="p-0">
@@ -483,7 +476,7 @@
 				<div class="flex justify-center py-12">
 					<Loader2 class="h-8 w-8 animate-spin text-primary" />
 				</div>
-			{:else if paginatedUsers.length === 0}
+			{:else if !users || users.length === 0}
 				<div class="text-center py-12 space-y-4">
 					<Users class="h-12 w-12 mx-auto text-muted-foreground" />
 					<div class="space-y-2">
@@ -511,7 +504,7 @@
 						</TableRow>
 					</TableHeader>
 					<TableBody>
-						{#each paginatedUsers as user}
+						{#each users as user}
 							<TableRow class="transition-colors duration-200 hover:bg-muted/50">
 								<TableCell>
 									<div class="flex items-center gap-3">

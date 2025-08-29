@@ -31,7 +31,6 @@
 	let users: any[] = $state([]);
 	let roles: Role[] = $state([]);
 	let userRoles: UserRole[] = $state([]);
-	let filteredUsers: any[] = $state([]);
 	let isLoading = $state(true);
 	let searchTerm = $state('');
 	let roleFilter = $state('');
@@ -64,8 +63,12 @@
 		isLoading = false;
 	});
 
-	// Reactive filtering
-	$effect(() => {
+	// Filtered users based on search and filters
+	let filteredUsers = $derived(() => {
+		if (!users || !Array.isArray(users)) {
+			return [];
+		}
+		
 		let filtered = users;
 
 		// Search filter
@@ -91,7 +94,7 @@
 			}
 		}
 
-		filteredUsers = filtered;
+		return filtered;
 	});
 
 	async function loadUsers() {
@@ -112,8 +115,12 @@
 		try {
 			const response = await fetch('/api/admin/roles');
 			if (response.ok) {
-				roles = await response.json();
+				const result = await response.json();
+				console.log('Roles API Response:', result); // Debug log
+				roles = result;
 			} else {
+				const errorText = await response.text();
+				console.error('Roles API Error:', response.status, errorText);
 				throw new Error('Failed to load roles');
 			}
 		} catch (err) {
@@ -126,8 +133,12 @@
 		try {
 			const response = await fetch('/api/admin/user-roles');
 			if (response.ok) {
-				userRoles = await response.json();
+				const result = await response.json();
+				console.log('User Roles API Response:', result); // Debug log
+				userRoles = result;
 			} else {
+				const errorText = await response.text();
+				console.error('User Roles API Error:', response.status, errorText);
 				throw new Error('Failed to load user roles');
 			}
 		} catch (err) {
@@ -322,9 +333,16 @@
 	}
 
 
-	const roleFilterOptions = [
-		{ value: 'no-role', label: 'No Role Assigned' }
-	];
+	// Role filter options including available roles
+	let roleFilterOptions = $derived(() => {
+		const options = [{ value: '', label: 'All Users' }, { value: 'no-role', label: 'No Role Assigned' }];
+		if (roles && Array.isArray(roles)) {
+			roles.forEach(role => {
+				options.push({ value: role._id, label: role.name });
+			});
+		}
+		return options;
+	});
 
 	const selectedRoleFilterLabel = $derived(
 		roleFilterOptions.find(option => option.value === roleFilter)?.label ?? 'Filter by role'
@@ -386,16 +404,16 @@
 					</div>
 				</div>
 				<div class="flex flex-col sm:flex-row gap-2">
-					<Select.Root type="single" bind:value={roleFilter}>
-				<Select.Trigger class="w-32">
-					{selectedRoleFilterLabel}
-				</Select.Trigger>
-				<Select.Content>
-					{#each roleFilterOptions as option}
-						<Select.Item value={option.value}>{option.label}</Select.Item>
-					{/each}
-				</Select.Content>
-			</Select.Root>
+					<Select.Root bind:value={roleFilter}>
+						<Select.Trigger class="w-full sm:w-[160px]">
+							<Select.Value placeholder="Filter by role" />
+						</Select.Trigger>
+						<Select.Content>
+							{#each roleFilterOptions as option}
+								<Select.Item value={option.value}>{option.label}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
 					<Button variant="outline" onclick={resetFilters} class="transition-colors duration-200">
 						Reset
 					</Button>

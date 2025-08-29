@@ -37,7 +37,6 @@
 
 	// State management with proper $state() declarations
 	let sessions: any[] = $state([]);
-	let filteredSessions: any[] = $state([]);
 	let users: any[] = $state([]);
 	let isLoading = $state(true);
 	let error = $state('');
@@ -83,55 +82,7 @@
 		isLoading = false;
 	});
 
-	// Reactive filtering
-	$effect(() => {
-		let filtered = sessions;
-
-		// Search filter
-		if (searchTerm.trim() !== '') {
-			const term = searchTerm.toLowerCase();
-			filtered = filtered.filter(session => 
-				session.userAgent?.toLowerCase().includes(term) ||
-				session.ipAddress?.toLowerCase().includes(term) ||
-				session.location?.toLowerCase().includes(term) ||
-				getUserName(session.userId)?.toLowerCase().includes(term)
-			);
-		}
-
-		// User filter
-		if (userFilter !== '') {
-			filtered = filtered.filter(session => session.userId === userFilter);
-		}
-
-		// Device filter
-		if (deviceFilter !== '') {
-			filtered = filtered.filter(session => getDeviceType(session.userAgent) === deviceFilter);
-		}
-
-		// Status filter
-		if (statusFilter !== '') {
-			if (statusFilter === 'active') {
-				filtered = filtered.filter(session => isSessionActive(session));
-			} else if (statusFilter === 'expired') {
-				filtered = filtered.filter(session => !isSessionActive(session));
-			}
-		}
-
-		filteredSessions = filtered;
-		totalItems = filtered.length;
-		currentPage = 1; // Reset to first page when filters change
-	});
-
-	// Paginated sessions - computed values
-	let paginatedSessions = $derived(() => {
-		if (!filteredSessions || !Array.isArray(filteredSessions)) {
-			return [];
-		}
-		return filteredSessions.slice(
-			(currentPage - 1) * itemsPerPage,
-			currentPage * itemsPerPage
-		);
-	});
+	// Use sessions directly since server handles pagination
 
 	let totalPages = $derived(Math.ceil(totalItems / itemsPerPage));
 
@@ -565,7 +516,7 @@ essions Table -->
 				<div class="flex justify-center py-12">
 					<Loader2 class="h-8 w-8 animate-spin text-primary" />
 				</div>
-			{:else if paginatedSessions.length === 0}
+			{:else if sessions.length === 0}
 				<div class="text-center py-12 space-y-4">
 					<Activity class="h-12 w-12 mx-auto text-muted-foreground" />
 					<div class="space-y-2">
@@ -588,7 +539,7 @@ essions Table -->
 						</TableRow>
 					</TableHeader>
 					<TableBody>
-						{#each paginatedSessions as session}
+						{#each sessions as session}
 							{@const DeviceIcon = getDeviceIcon(session.userAgent)}
 							<TableRow class="transition-colors duration-200 hover:bg-muted/50">
 								<TableCell>

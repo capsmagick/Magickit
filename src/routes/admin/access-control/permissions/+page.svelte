@@ -26,7 +26,6 @@
 
 	// State management
 	let permissions: Permission[] = $state([]);
-	let filteredPermissions: Permission[] = $state([]);
 	let isLoading = $state(true);
 	let searchTerm = $state('');
 	let resourceFilter = $state('');
@@ -65,40 +64,18 @@
 		isLoading = false;
 	});
 
-	// Reactive filtering
-	$effect(() => {
-		let filtered = permissions;
-
-		// Search filter
-		if (searchTerm.trim() !== '') {
-			const term = searchTerm.toLowerCase();
-			filtered = filtered.filter(permission => 
-				permission.name.toLowerCase().includes(term) ||
-				permission.description.toLowerCase().includes(term) ||
-				permission.resource.toLowerCase().includes(term) ||
-				permission.action.toLowerCase().includes(term)
-			);
-		}
-
-		// Resource filter
-		if (resourceFilter !== '') {
-			filtered = filtered.filter(permission => permission.resource === resourceFilter);
-		}
-
-		// Action filter
-		if (actionFilter !== '') {
-			filtered = filtered.filter(permission => permission.action === actionFilter);
-		}
-
-		filteredPermissions = filtered;
-	});
+	// Use permissions directly since server handles filtering
 
 	async function loadPermissions() {
 		try {
 			const response = await fetch('/api/admin/permissions');
 			if (response.ok) {
-				permissions = await response.json();
+				const result = await response.json();
+				console.log('Permissions API Response:', result); // Debug log
+				permissions = result;
 			} else {
+				const errorText = await response.text();
+				console.error('Permissions API Error:', response.status, errorText);
 				throw new Error('Failed to load permissions');
 			}
 		} catch (err) {
@@ -257,6 +234,38 @@
 		actionFilter = '';
 	}
 
+	// Filtered permissions based on search and filters
+	let filteredPermissions = $derived(() => {
+		if (!permissions || !Array.isArray(permissions)) {
+			return [];
+		}
+		
+		let filtered = permissions;
+
+		// Search filter
+		if (searchTerm.trim() !== '') {
+			const term = searchTerm.toLowerCase();
+			filtered = filtered.filter(p => 
+				p.name.toLowerCase().includes(term) ||
+				p.resource.toLowerCase().includes(term) ||
+				p.action.toLowerCase().includes(term) ||
+				p.description.toLowerCase().includes(term)
+			);
+		}
+
+		// Resource filter
+		if (resourceFilter !== '') {
+			filtered = filtered.filter(p => p.resource === resourceFilter);
+		}
+
+		// Action filter
+		if (actionFilter !== '') {
+			filtered = filtered.filter(p => p.action === actionFilter);
+		}
+
+		return filtered;
+	});
+
 	function getUniqueResources(): string[] {
 		if (!permissions || !Array.isArray(permissions)) {
 			return [];
@@ -265,11 +274,14 @@
 	}
 
 	function getUniqueActions(): string[] {
+		if (!permissions || !Array.isArray(permissions)) {
+			return [];
+		}
 		return [...new Set(permissions.map(p => p.action))].sort();
 	}
 
 	function getPermissionsByResource(resource: string): Permission[] {
-		return permissions.filter(p => p.resource === resource);
+		return filteredPermissions.filter(p => p.resource === resource);
 	}
 
 	function capitalizeFirst(str: string): string {
@@ -401,7 +413,7 @@
 								</TableRow>
 							</TableHeader>
 							<TableBody>
-								{#each getPermissionsByResource(resource).filter(p => filteredPermissions.includes(p)) as permission}
+								{#each getPermissionsByResource(resource) as permission}
 									<TableRow class="transition-colors duration-200 hover:bg-muted/50">
 										<TableCell>
 											<div class="font-medium text-sm">{permission.name}</div>

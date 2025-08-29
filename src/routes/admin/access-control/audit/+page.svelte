@@ -27,7 +27,6 @@
 
 	// State management
 	let auditLogs: any[] = $state([]);
-	let filteredLogs: any[] = $state([]);
 	let users: any[] = $state([]);
 	let isLoading = $state(true);
 	let isExporting = $state(false);
@@ -64,8 +63,12 @@
 		isLoading = false;
 	});
 
-	// Reactive filtering
-	$effect(() => {
+	// Filtered logs based on search and filters
+	let filteredLogs = $derived(() => {
+		if (!auditLogs || !Array.isArray(auditLogs)) {
+			return [];
+		}
+		
 		let filtered = auditLogs;
 
 		// Search filter
@@ -113,9 +116,13 @@
 			filtered = filtered.filter(log => new Date(log.timestamp) <= toDate);
 		}
 
-		filteredLogs = filtered;
-		totalItems = filtered.length;
-		currentPage = 1; // Reset to first page when filters change
+		return filtered;
+	});
+
+	// Update total items and reset page when filters change
+	$effect(() => {
+		totalItems = filteredLogs.length;
+		currentPage = 1;
 	});
 
 	// Paginated logs
@@ -135,8 +142,12 @@
 		try {
 			const response = await fetch('/api/admin/audit-logs');
 			if (response.ok) {
-				auditLogs = await response.json();
+				const result = await response.json();
+				console.log('Audit Logs API Response:', result); // Debug log
+				auditLogs = result;
 			} else {
+				const errorText = await response.text();
+				console.error('Audit Logs API Error:', response.status, errorText);
 				throw new Error('Failed to load audit logs');
 			}
 		} catch (err) {
@@ -257,10 +268,6 @@
 		{ value: 'true', label: 'Success' },
 		{ value: 'false', label: 'Failed' }
 	];
-
-	const selectedSuccessFilterLabel = $derived(
-		successFilterOptions.find(option => option.value === successFilter)?.label ?? 'Status'
-	);
 </script>
 
 <svelte:head>
@@ -359,16 +366,17 @@
 							{/each}
 						</Select.Content>
 					</Select.Root>
-					<Select.Root type="single" bind:value={successFilter}>
-				<Select.Trigger class="w-32">
-					{selectedSuccessFilterLabel}
-				</Select.Trigger>
-				<Select.Content>
-					{#each successFilterOptions as option}
-						<Select.Item value={option.value}>{option.label}</Select.Item>
-					{/each}
-				</Select.Content>
-			</Select.Root>
+					<Select.Root bind:value={successFilter}>
+						<Select.Trigger class="w-full sm:w-[100px]">
+							<Select.Value placeholder="Status" />
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="">All Status</Select.Item>
+							{#each successFilterOptions as option}
+								<Select.Item value={option.value}>{option.label}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
 				</div>
 			</div>
 
